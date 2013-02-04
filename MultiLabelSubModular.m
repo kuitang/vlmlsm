@@ -117,7 +117,8 @@ W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 
 
 % run the optimization
-x = MultiLabelSubModular_mex(D', W, Vm);
+%x = MultiLabelSubModular_mex(D', W, Vm);
+[x, max_flow] = MultiLabelSubModularBasic(D', W, Vm);
 
 if nargout > 1 % compute energy as well
     N = size(D,1);
@@ -126,7 +127,6 @@ if nargout > 1 % compute energy as well
     e(2) = sum( D( sub2ind( size(D), 1:N, x) ) ); % data term (unary)
     e(1) = sum(e(2:3));
 end
-
 
 %-------------------------------------------------------------------------%
 function tf = IsMonge(M)

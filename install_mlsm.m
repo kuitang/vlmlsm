@@ -10,8 +10,9 @@ fprintf(1, 'visual studio compiler (for Windows machines), or gcc (for Linux mac
 
 % compiling
 try
-    mex -O -largeArrayDims -DNDEBUG graph.cpp maxflow.cpp...
+    mex -g -largeArrayDims -DNDEBUG graph.cpp maxflow.cpp...
         MultiLabelSubModular_mex.cpp -output MultiLabelSubModular_mex
+    mex -g -largeArrayDims graph.cpp maxflow.cpp BK_mex.cpp -output BK_mex
 catch em
     fprintf(1, '\n\nFailed to compile!\n==>Please fix all errors before trying to use this code!<==\n\n');
     rethrow(em);

@@ -1,4 +1,4 @@
-[D, W, Vi, Vm] = gen_mrf(7, 4, 1);
+[D, W, Vi, Vm] = gen_mrf(3, 2, 1);
 
 % Ignore unaries
 %D = zeros(6, 3);
@@ -9,5 +9,5 @@ Vi = Vi - tril(Vi);
 
 [xb, eb] = MultiLabelSubModularBruteForce(D, W, Vi, Vm)
 [x, e]   = MultiLabelSubModular(D, W, Vi, Vm)
-%assert(all(x == xb));
-%assertElementsAlmostEqual(eb, e(1));
+assert(all(x == xb));
+assertElementsAlmostEqual(eb, e);

@@ -11,16 +11,22 @@ function [ D, W, Vi, Vm ] = gen_mrf( N, L, edge_prob )
     D = rand(N, L);
     
     nzmat = rand(N, N) < edge_prob;
-    W = rand(N, N) .* nzmat;
+    W = ones(N, N) .* nzmat;
+    %W = abs(rand(N, N) .* nzmat);
+  
+    seq = cumsum(rand(1, L));
+    Vm = abs(bsxfun(@minus, seq, seq'));
+    Vi = ones(N, N);
     
-    Vm = zeros(L, L, 2);
-    % Generate a random monotonic sequence
-    seq = cumsum(rand(1, L));    
-    Vm(:,:,1) = abs( bsxfun(@minus, seq, seq') ); % L1 term
-    Vm(:,:,2) = Vm(:,:,1).^2; % L2 term
+%     Vm = zeros(L, L, 2);
+%     % Generate a random monotonic sequence
+%     seq = cumsum(rand(1, L));    
+%     Vm(:,:,1) = abs( bsxfun(@minus, seq, seq') ); % L1 term
+%     Vm(:,:,2) = Vm(:,:,1).^2; % L2 term
     assert(IsMonge(Vm));
     
-    Vi = randi(2, N, N) .* nzmat;
+    
+    %Vi = randi(2, N, N) .* nzmat;
 end
 
 %-------------------------------------------------------------------------%
