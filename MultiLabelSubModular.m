@@ -108,7 +108,11 @@ assert( all( vij>= 1 ) && all( vij <= size(Vm,3) ),...
     'MultiLabelSubModular:Vi',...
     'Vi entries must be between 1 and %d', size(Vm,3));
 
-W = sparse(wi(sel), wj(sel), wij(sel) + 1i*vij(sel), size(W,1), size(W,2));
+% symmetrize: add the transpose entries
+ivec = vertcat(wi(sel), wj(sel));
+jvec = vertcat(wj(sel), wi(sel));
+wvec = vertcat(wij(sel) + 1i*vij(sel), wij(sel) + 1i*vij(sel));
+W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 
 
 

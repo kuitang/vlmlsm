@@ -34,34 +34,37 @@ Vi = sparse(ii, jj, randi(2, E, 1), N, N); % choose randomly between L1 and L2
 
 % run the optimization
 [x e] = MultiLabelSubModular(D, W, Vi, Vm);
+[xbf ebf] = MultiLabelSubModularBruteForce(D, W, Vi, Vm);
+assert(all(x == xbf));
+assertElementsAlmostEqual(e, ebf);
 
 figure;
 imagesc( reshape(x, sz) );axis image;colorbar
 title(sprintf('optimal labeling energy = %.1f', e(1)));
 
 
-%------------------------------------------------------------------------%
-% Run Tsukuba example with L1 norm (not truncated as in middlebury
-% benchmark)
-
-fprintf(1, '\n\nRunning tsukuba stereo example.\n');
-fprintf(1, 'This example requires large RAM and may fail if not enough memory exists\n');
-
-load('./middlebury_mrf_tsu.mat','Dc', 'W', 'sz');
-
-nl = size(Dc,2);
-
-% the pair-wise cost of tsukuba is originally truncated L1 with weight
-% w_ij depending on contrast. Since truncated L1 is not submodular, we work
-% here with regular L1
-Vm = 15*abs( bsxfun(@minus, 1:nl, (1:nl)') );
-Vi = spfun(@(x) 1, W);
-
-[x e] = MultiLabelSubModular(Dc, W, Vi, Vm);
-
-figure;
-imagesc( reshape(x,sz) ); axis image; colormap gray; colorbar
-title( sprintf('optimal labeling energy = %d', e(1) ) );
-
-fprintf(1, 'Done.\n\n');
+% %------------------------------------------------------------------------%
+% % Run Tsukuba example with L1 norm (not truncated as in middlebury
+% % benchmark)
+% 
+% fprintf(1, '\n\nRunning tsukuba stereo example.\n');
+% fprintf(1, 'This example requires large RAM and may fail if not enough memory exists\n');
+% 
+% load('./middlebury_mrf_tsu.mat','Dc', 'W', 'sz');
+% 
+% nl = size(Dc,2);
+% 
+% % the pair-wise cost of tsukuba is originally truncated L1 with weight
+% % w_ij depending on contrast. Since truncated L1 is not submodular, we work
+% % here with regular L1
+% Vm = 15*abs( bsxfun(@minus, 1:nl, (1:nl)') );
+% Vi = spfun(@(x) 1, W);
+% 
+% [x e] = MultiLabelSubModular(Dc, W, Vi, Vm);
+% 
+% figure;
+% imagesc( reshape(x,sz) ); axis image; colormap gray; colorbar
+% title( sprintf('optimal labeling energy = %d', e(1) ) );
+% 
+% fprintf(1, 'Done.\n\n');
 
