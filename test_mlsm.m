@@ -1,4 +1,4 @@
-[D, W, Vi, Vm] = gen_mrf(3, 2, 1);
+[D, W, Vi, Vm] = gen_mrf(5, 2, 1);
 
 % Ignore unaries
 %D = zeros(6, 3);

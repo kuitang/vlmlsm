@@ -2,24 +2,28 @@
 #include "graph.h"
 
 /*
- * [e, cut] = BK(ivec, jvec, ijvec, nnodes)
+ * [e, cut] = BK(iVec, jVec, ijVec, jiVec, nNodes, sNode, tNode)
  *
- * Runs BK on the graph whose edges are given by (ivec, jvec, ijvec, jivec) with nnodes nodes.
- * By convention, node nnodes + 1 is s and nnodes + 2 is t. ivec and jvec are 1-indexed.
+ * Runs BK on the graph whose edges are given by (iVec, jVec, ijVec, jiVec)
+ * with nNodes nodes.
  *
- * ijvec and jivec specify bidirectional edge weights. ijvec is the edge ivec -> jvec and
- * jivec is jvec -> ivec. NOTE: For s -> x or x -> t edges, jivec is ignored.
+ * ijVec and jivec specify bidirectional edge weights. ijVec is the edge
+ * ivec -> jvec and jivec is jvec -> ivec.
  *
- * e is a scalar output for the maximum flow. cut is a 1 x N logical vector indicating
- * the nodes assigned to the SOURCE.
+ * NOTE: For s -> x or x -> t edges, jivec is ignored.
+ *
+ * e is a scalar output for the maximum flow. cut is a 1 x (N+1) logical vector indicating
+ * the nodes assigned to the SINK. Note the extra dimension to be agnostic with 0/1 indexing.
  */
 
 enum {
-  iivec = 0,
-  ijvec,
-  iijvec,
-  ijivec,
-  innodes,
+  iiVec = 0,
+  ijVec,
+  iijVec,
+  ijiVec,
+  inNodes,
+  isNode,
+  itNode,
   nI
 };
 
@@ -41,38 +45,38 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
     mexErrMsgIdAndTxt("BK_mex:n_output:", "Must have at most %d outputs", nO);
   }
   /*
-  if (mxGetNumberOfDimensions(pIn[iivec]) != 1 ||
-      mxGetNumberOfDimensions(pIn[ijvec]) != 1 ||
-      mxGetNumberOfDimensions(pIn[iijvec]) != 1) {
+  if (mxGetNumberOfDimensions(pIn[iiVec]) != 1 ||
+      mxGetNumberOfDimensions(pIn[ijVec]) != 1 ||
+      mxGetNumberOfDimensions(pIn[iijVec]) != 1) {
     mexErrMsgIdAndTxt("BK_mex:dim", "input vectors must be one dimensional");
   }
   */
 
   /*
-  if ((mxGetLength(pIn[iivec]) != mxGetLength(pIn[ijvec])) ||
-      (mxGetLength(pIn[ijvec]) != mxGetLength(pIn[iijvec])) ||
-      (mxGetLength(pIn[iijvec]) != mxGetLength(pIn[ijivec]))) {
+  if ((mxGetLength(pIn[iiVec]) != mxGetLength(pIn[ijVec])) ||
+      (mxGetLength(pIn[ijVec]) != mxGetLength(pIn[iijVec])) ||
+      (mxGetLength(pIn[iijVec]) != mxGetLength(pIn[ijiVec]))) {
     mexErrMsgIdAndTxt("BK_mex:eq", "input vectors must have same size");
   }
   */
 
-  int nEdges = mxGetLength(pIn[iivec]);
-  int nNodes = mxGetScalar(pIn[innodes]);
+  int nEdges = mxGetLength(pIn[iiVec]);
+  int nNodes = mxGetScalar(pIn[inNodes]);
+  int sNode  = mxGetScalar(pIn[isNode]);
+  int tNode  = mxGetScalar(pIn[itNode]);
 
-  // we're now on 0-indexing.
-  int sNode = nNodes;
-  int tNode = nNodes + 1;
-
-  double *iVec = mxGetPr(pIn[iivec]);
-  double *jVec = mxGetPr(pIn[ijvec]);
-  double *ijVec = mxGetPr(pIn[iijvec]);
-  double *jiVec = mxGetPr(pIn[ijivec]);
+  double *iVec = mxGetPr(pIn[iiVec]);
+  double *jVec = mxGetPr(pIn[ijVec]);
+  double *ijVec = mxGetPr(pIn[iijVec]);
+  double *jiVec = mxGetPr(pIn[ijiVec]);
 
   // Translate sparse entries to a BK graph
   typedef Graph<double, double, double> dGraph;
   dGraph *gp = new dGraph(nNodes, nEdges, mexErrMsgTxt);
   mexPrintf("nNodes = %d\n", nNodes);
-  gp->add_node(nNodes);
+  // IMPORTANT! Enables one-indexing transparently from MATLAB. (We can
+  // effectively ignore node 0 if we want.)
+  gp->add_node(nNodes + 1);
 
   int i, j;
   double ij, ji;
@@ -93,12 +97,12 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
       mexPrintf("[BK_mex] Added %d -> t edge; weight %g\n", i, ij);
     }
     else {
-      if (i < 0 || i >= nNodes) {
-        mexPrintf("i = %d\n", i);
+      if (i < 0 || i > nNodes) {
+        mexPrintf("i, j = %d, %d\n", i, j);
         mexErrMsgIdAndTxt("BK_mex:ibounds", "i out of bounds");
       }
-      if (j < 0 || j >= nNodes) {
-        mexPrintf("j = %d\n", j);
+      if (j < 0 || j > nNodes) {
+        mexPrintf("i, j = %d, %d\n", i, j);
         mexErrMsgIdAndTxt("BK_mex:jbounds", "j out of bounds");
       }
       gp->add_edge(i, j, ij, ji);
@@ -123,11 +127,13 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   pOut[oE] = mxCreateDoubleScalar(e);
   mexPrintf("[BK_mex] before cut\n");
   if (nOut > 1) {
-    pOut[oCut] = mxCreateLogicalMatrix(1, nNodes);
+    // IMPORTANT: Support both 0 and 1 indexing. (Depending on convention,
+    // ignore either the head or tail.)
+    pOut[oCut] = mxCreateLogicalMatrix(1, nNodes + 1);
     mxLogical *pl = mxGetLogicals(pOut[oCut]);
 
-    for (int n = 0; n < nNodes; n++) {
-      pl[n] = gp->what_segment(n);
+    for (int n = 0; n <= nNodes; n++) {
+      pl[n] = gp->what_segment(n) == dGraph::SINK;
     }
   }
   mexPrintf("[BK_mex] after cut\n");

@@ -5,21 +5,25 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
     E = nnz(W);
     
     % Edges for the graph
-    % Nodes are zero-indexed
-    nnodes = N*(L-1); % excluding s/t
-    nedges = N*(L-2) + E*(L-1)*(L-1) + 2*nnodes;
+    % Nodes are one-indexed
+    nNodes = N*(L-1); % excluding s/t
+    nEdges = N*(L-2) + E*(L-1)*(L-1) + 2*nNodes;
     
-    nodeS = nnodes;
-    nodeT = nnodes + 1;
+    nodeDim = [N L-1];
+    
+    sNode = nNodes + 1;
+    tNode = nNodes + 2;
     
     ce = 1; % current edge
-    ivec = zeros(nedges, 1);
-    jvec = zeros(nedges, 1);
-    ijvec = zeros(nedges, 1);
-    jivec = zeros(nedges, 1);
+    iVec = zeros(nEdges, 1);
+    jVec = zeros(nEdges, 1);
+    ijVec = zeros(nEdges, 1);
+    jiVec = zeros(nEdges, 1);
             
-    % Unary terms, source/sink weights, and stage ladder-climbing terms
-    edgeCounter = 0;
+    % Unary terms, source/sink weights, and stage ladder-climbing terms    
+    nStEdges = 0;
+    nZInfEdges = 0;
+    nAlphaEdges = 0;
     for r = 1:N
         for k = 1:(L - 1)
             qrk = 0;
@@ -37,33 +41,32 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
             end
             qrk = qrk / 2;
             qrk = qrk + D(k,r) - D(k+1,r);
-            
-            this_node = (r - 1) * (L - 1) + (k - 1);
+                        
+            this_node = sub2ind(nodeDim, r, k);            
             if qrk > 0     
-                ivec(ce) = nodeS;
-                jvec(ce) = this_node;               
-                ijvec(ce) = qrk;                                
+                iVec(ce) = sNode;
+                jVec(ce) = this_node;               
+                ijVec(ce) = qrk;                                
             else
-                ivec(ce) = this_node;
-                jvec(ce) = nodeT;                
-                ijvec(ce) = -qrk;
+                iVec(ce) = this_node;
+                jVec(ce) = tNode;                
+                ijVec(ce) = -qrk;
             end
-            assert(ijvec(ce) >= 0);
+            assert(ijVec(ce) >= 0);
+            nStEdges = nStEdges + 1;
             ce = ce + 1;
                         
             if k <= L - 2 % between-states edge
-                ivec(ce) = this_node;
-                jvec(ce) = this_node + 1;
-                ijvec(ce) = 0;
-                jivec(ce) = 1e100; % Inf, but not literally
+                iVec(ce) = this_node;
+                jVec(ce) = this_node + 1;
+                ijVec(ce) = 0;
+                jiVec(ce) = 1e100; % Inf, but not literally
                 
                 ce = ce + 1;
-                edgeCounter = edgeCounter + 1;
+                nZInfEdges = nZInfEdges + 1;                
             end                                    
         end
-    end
-    assert(edgeCounter == N*(L - 2));
-    edgeCounter = 0;
+    end    
     
     % Pairwise terms
     for r = 1:N
@@ -75,49 +78,51 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
             assert(v > 0 && v <= nV);
             
             for k = 1:(L - 1)
+                this_node = sub2ind(nodeDim, r, k);                                                            
                 for kk = 1:(L - 1)
                     arr = w * (V(k,kk,v) ...
                                + V(k+1,kk+1,v) ...
                                - V(k+1,kk,v) ...
                                - V(k,kk+1,v));
                     arr = -arr / 2;
-                    if abs(arr) <= eps
+                    if arr < 0 && arr >= -eps
                         arr = 0;
                     end
-                    assert(arr >= 0);
-                    this_node = (r - 1) *  (L - 1) + (k - 1);
-                    that_node = (rr - 1) * (L - 1) + (kk - 1);
-                    ivec(ce) = this_node;
-                    jvec(ce) = that_node;
-                    ijvec(ce) = arr;
-                    jivec(ce) = arr;
-                    ce = ce + 1;                                        
-                    edgeCounter = edgeCounter + 1;
+                    assert(arr >= 0);                    
+                    
+                    that_node = sub2ind(nodeDim, rr, kk);                    
+                    iVec(ce) = this_node;
+                    jVec(ce) = that_node;
+                    ijVec(ce) = arr;
+                    jiVec(ce) = arr;
+                    ce = ce + 1;     
+                    nAlphaEdges = nAlphaEdges + 1;                    
                 end
             end           
         end
-    end
-    assert(edgeCounter == E*(L-1)*(L-1));
+    end    
     
-    keep = ivec ~= jvec;
-    ivec = ivec(keep);
-    jvec = jvec(keep); 
-    ijvec = ijvec(keep);
-    jivec = jivec(keep);
+    keep = iVec ~= jVec;
+    iVec = iVec(keep);
+    jVec = jVec(keep); 
+    ijVec = ijVec(keep);
+    jiVec = jiVec(keep);
     
-    [max_flow, cut] = BK_mex(ivec, jvec, ijvec, jivec, nnodes);    
+    % Translate to zero-index
+    [max_flow, cut] = BK_mex(iVec - 1, jVec - 1, ijVec, jiVec, nNodes);    
     
+    cut
     % Translated
     x = zeros(1, N);
     for r = 1:N
         x(r) = L;
         breakout = false;
-        for k = 1:L            
+        for k = 1:(L-1)
             if ~breakout
                 % 1-index
-                node = (r - 1) * (L - 1) + (k - 1) + 1;
-                if ~cut(node) % node is in sink, not source
-                    x(r) = k + 1;
+                node = sub2ind(nodeDim, r, k);                
+                if cut(node) % node is in sink, not source
+                    x(r) = k;
                     breakout = true;
                 end
             end
