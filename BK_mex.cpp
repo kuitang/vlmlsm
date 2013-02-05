@@ -90,11 +90,11 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
       // In MATLAB, we added an entry (sNode, j). graph.h expects a call
       // (j, w, 0) (since we have only a flow from the source)
       gp->add_tweights(j, ij, 0);
-      mexPrintf("[BK_mex] Added s -> %d edge; weight %g\n", j, ij);
+      //mexPrintf("[BK_mex] Added s -> %d edge; weight %g\n", j, ij);
     }
     else if (j == tNode) {
       gp->add_tweights(i, 0, ij);
-      mexPrintf("[BK_mex] Added %d -> t edge; weight %g\n", i, ij);
+      //mexPrintf("[BK_mex] Added %d -> t edge; weight %g\n", i, ij);
     }
     else {
       if (i < 0 || i > nNodes) {
@@ -106,16 +106,16 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
         mexErrMsgIdAndTxt("BK_mex:jbounds", "j out of bounds");
       }
       gp->add_edge(i, j, ij, ji);
-      mexPrintf("[BK_mex] Added %d -> %d edge; weights %g, %g\n", i, j, ij, ji);
+      //mexPrintf("[BK_mex] Added %d -> %d edge; weights %g, %g\n", i, j, ij, ji);
     }
   }
 
   /****************************************************************
    * optimize!
    */
-  mexPrintf("[BK_mex] before maxflow\n");
+  //mexPrintf("[BK_mex] before maxflow\n");
   double e = gp->maxflow();
-  mexPrintf("[BK_mex] after maxflow\n");
+  //mexPrintf("[BK_mex] after maxflow\n");
 
 
   /****************************************************************
@@ -125,7 +125,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
 
 
   pOut[oE] = mxCreateDoubleScalar(e);
-  mexPrintf("[BK_mex] before cut\n");
+  //mexPrintf("[BK_mex] before cut\n");
   if (nOut > 1) {
     // IMPORTANT: Support both 0 and 1 indexing. (Depending on convention,
     // ignore either the head or tail.)
@@ -136,5 +136,5 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
       pl[n] = gp->what_segment(n) == dGraph::SINK;
     }
   }
-  mexPrintf("[BK_mex] after cut\n");
+  //mexPrintf("[BK_mex] after cut\n");
 }

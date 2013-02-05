@@ -57,10 +57,9 @@ function [xmin emin] = MultiLabelSubModularBruteForce(D, W, Vi, Vm)
                 
         % Pairwise term
         energy(3) = Vm(sub2ind(size(Vm), x(swi), x(swj), svij')) * swij;        
-        energy(2) = sum( D( sub2ind( size(D), 1:N, x) ) ); % data term (unary)
-        
-        
+        energy(2) = sum(D(sub2ind(size(D), 1:N, x))); % data term (unary)        
         energy(1) = sum(energy(2:3));
+        
         if energy(1) < emin(1)            
             emin = energy;
             xmin = x;

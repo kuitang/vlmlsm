@@ -2,97 +2,120 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
     
     [L, N] = size(D);
     nV = size(V, 3);
-    E = nnz(W);
-    
-    % Edges for the graph
+    E = nnz(W); % Number of edges in the underlying graph.
+        
     % Nodes are one-indexed
     nNodes = N*(L-1); % excluding s/t
-    nEdges = N*(L-2) + E*(L-1)*(L-1) + 2*nNodes;
+    
+    % This equation (except 2*nNodes) was lifted from the C++, but I'm not
+    % sure if its correct, due to the alphas.
+    %
+    % Presumably, it's supposed to be the number of times you call add_edge,
+    % excluding s and t edges.
+    nEdges = N*(L-2) + E*(L-1)*(L-1) + nNodes;
     
     nodeDim = [N L-1];
     
-    sNode = nNodes + 1;
-    tNode = nNodes + 2;
+    sNode = -1; tNode = -2;
     
     ce = 1; % current edge
-    iVec = zeros(nEdges, 1);
-    jVec = zeros(nEdges, 1);
-    ijVec = zeros(nEdges, 1);
-    jiVec = zeros(nEdges, 1);
+    iVec = zeros(nEdges, 1); jVec = zeros(nEdges, 1);
+    ijVec = zeros(nEdges, 1); jiVec = zeros(nEdges, 1);
+    
+    nZInfEdges = 0;    
+    % Zero/infinity weights
+    for r = 1:N
+        for k = 1:(L - 2)
+            lowNode  = sub2ind(nodeDim, r, k);
+            highNode = sub2ind(nodeDim, r, k + 1);
             
-    % Unary terms, source/sink weights, and stage ladder-climbing terms    
+            iVec(ce)  = lowNode;
+            jVec(ce)  = highNode;
+            ijVec(ce) = 0;
+            jiVec(ce) = 1e100;
+            
+            ce = ce + 1;
+            nZInfEdges = nZInfEdges + 1;
+        end
+    end       
+    assert(nZInfEdges == N * (L - 2));
+    
+    % Unary/source/sink weights
     nStEdges = 0;
-    nZInfEdges = 0;
-    nAlphaEdges = 0;
     for r = 1:N
         for k = 1:(L - 1)
             qrk = 0;
             for rr = find(W(:,r))'
-                fw = full(W(rr,r));
-                w = real(fw);
-                v = int32(imag(fw));
+                fw = full(W(rr,r)); w = real(fw); v = int32(imag(fw));
                 assert(w > 0);                
                 assert(v > 0 && v <= nV);
 
-                qrk = qrk + w * (V(k,1,v) ...
-                                 + V(k,L,v) ...
-                                 - V(k+1,1,v) ...
-                                 - V(k+1,L,v));  
+                qrk = qrk + w * (V(k,1,v) + V(k,L,v) - V(k+1,1,v) - V(k+1,L,v));
             end
             qrk = qrk / 2;
             qrk = qrk + D(k,r) - D(k+1,r);
                         
-            this_node = sub2ind(nodeDim, r, k);            
+            lowNode = sub2ind(nodeDim, r, k);            
             if qrk > 0     
                 iVec(ce) = sNode;
-                jVec(ce) = this_node;               
+                jVec(ce) = lowNode;               
                 ijVec(ce) = qrk;                                
             else
-                iVec(ce) = this_node;
+                iVec(ce) = lowNode;
                 jVec(ce) = tNode;                
                 ijVec(ce) = -qrk;
             end
             assert(ijVec(ce) >= 0);
             nStEdges = nStEdges + 1;
-            ce = ce + 1;
-                        
-            if k <= L - 2 % between-states edge
-                iVec(ce) = this_node;
-                jVec(ce) = this_node + 1;
-                ijVec(ce) = 0;
-                jiVec(ce) = 1e100; % Inf, but not literally
-                
-                ce = ce + 1;
-                nZInfEdges = nZInfEdges + 1;                
-            end                                    
+            ce = ce + 1;                                                           
         end
-    end    
+    end   
+    assert(nStEdges == nNodes);    
     
-    % Pairwise terms
+    % Pairwise weights
+    nAlphaEdges = 0;
     for r = 1:N
         for rr = find(W(:,r))'
-            fw = full(W(rr,r));
-            w = real(fw);
-            v = int32(imag(fw));
+            fw = full(W(rr,r)); w = real(fw); v = int32(imag(fw));
             assert(w > 0);
             assert(v > 0 && v <= nV);
             
+            % By convention, k is the setting of r and kk is the setting of
+            % rr. However, each V matrix-slice is indexed by convention
+            % with lower-numbered variable on rows, higher-numbered
+            % variable on columns. For instance, if V(:,:,v) contained the
+            % x_1 and x_2 interactions and x_1 = k, x_2 = kk, then we would
+            % look up V(k,kk,v).
+            %
+            % However, during the iteration, we will also encounter the
+            % setting x_1 = kk, x_2 = k. Then we will need to look up
+            % V(kk,k,v).
+            %
+            % Note that little-v is symmetric in r and rr.            
+            if r < rr
+                Vv = V(:,:,v);
+            elseif r > rr
+                Vv = V(:,:,v)';
+            else
+                continue;
+            end
+
             for k = 1:(L - 1)
-                this_node = sub2ind(nodeDim, r, k);                                                            
+                lowNode = sub2ind(nodeDim, r, k);                                                            
+                
                 for kk = 1:(L - 1)
-                    arr = w * (V(k,kk,v) ...
-                               + V(k+1,kk+1,v) ...
-                               - V(k+1,kk,v) ...
-                               - V(k,kk+1,v));
+                    highNode = sub2ind(nodeDim, rr, kk);
+                                                                                    
+                    arr = w * (Vv(k,kk) + Vv(k+1,kk+1) - Vv(k+1,kk) - Vv(k,kk+1));
                     arr = -arr / 2;
+                    % Sometimes we get minor negative perturbation
                     if arr < 0 && arr >= -eps
                         arr = 0;
                     end
-                    assert(arr >= 0);                    
+                    assert(arr >= 0);
                     
-                    that_node = sub2ind(nodeDim, rr, kk);                    
-                    iVec(ce) = this_node;
-                    jVec(ce) = that_node;
+                    iVec(ce) = lowNode;
+                    jVec(ce) = highNode;
                     ijVec(ce) = arr;
                     jiVec(ce) = arr;
                     ce = ce + 1;     
@@ -102,31 +125,25 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
         end
     end    
     
-    keep = iVec ~= jVec;
-    iVec = iVec(keep);
-    jVec = jVec(keep); 
-    ijVec = ijVec(keep);
-    jiVec = jiVec(keep);
+    assert(all(iVec ~= jVec));    
+        
+    [max_flow, cut] = BK_mex(iVec, jVec, ijVec, jiVec, nNodes, sNode, tNode);        
+    cut = cut(2:end); % 1-index
     
-    % Translate to zero-index
-    [max_flow, cut] = BK_mex(iVec - 1, jVec - 1, ijVec, jiVec, nNodes);    
-    
-    cut
-    % Translated
+    % Let k' be the true optimal label. Then node (r, k) is labelled 1 (SINK)
+    % if k >= k' and 0 otherwise. We assign k' as the first SINK label. See
+    % the diagram on page 8.    
     x = zeros(1, N);
     for r = 1:N
-        x(r) = L;
-        breakout = false;
-        for k = 1:(L-1)
-            if ~breakout
-                % 1-index
-                node = sub2ind(nodeDim, r, k);                
-                if cut(node) % node is in sink, not source
-                    x(r) = k;
-                    breakout = true;
-                end
-            end
+        x(r) = L;        
+        
+        k = 1;
+        % The highest value we explicitly track is L - 1.
+        while k <= L - 1 && ~cut(sub2ind(nodeDim, r, k)) % while node is in SOURCE
+            k = k + 1;
         end
+        
+        x(r) = k;        
     end
 end
 

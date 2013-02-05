@@ -108,13 +108,16 @@ assert( all( vij>= 1 ) && all( vij <= size(Vm,3) ),...
     'MultiLabelSubModular:Vi',...
     'Vi entries must be between 1 and %d', size(Vm,3));
 
+swi = wi(sel);
+swj = wj(sel);
+swij = wij(sel);
+svij = vij(sel);
+
 % symmetrize: add the transpose entries
-ivec = vertcat(wi(sel), wj(sel));
-jvec = vertcat(wj(sel), wi(sel));
-wvec = vertcat(wij(sel) + 1i*vij(sel), wij(sel) + 1i*vij(sel));
+ivec = vertcat(swi, swj);
+jvec = vertcat(swj, swi);
+wvec = vertcat(swij + 1i*svij, swij + 1i*svij);
 W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
-
-
 
 % run the optimization
 %x = MultiLabelSubModular_mex(D', W, Vm);
@@ -123,8 +126,8 @@ W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 if nargout > 1 % compute energy as well
     N = size(D,1);
     
-    e(3) = Vm( sub2ind( size(Vm), x(wi), x(wj), vij') ) * wij; % pair-wise term
-    e(2) = sum( D( sub2ind( size(D), 1:N, x) ) ); % data term (unary)
+    e(3) = Vm(sub2ind(size(Vm), x(swi), x(swj), svij')) * swij; % pair-wise term
+    e(2) = sum(D(sub2ind(size(D), 1:N, x))); % data term (unary)
     e(1) = sum(e(2:3));
 end
 
