@@ -1,4 +1,4 @@
-function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
+function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     
     [L, N] = size(D);
     nV = size(V, 3);
@@ -22,6 +22,27 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
     iVec = zeros(nEdges, 1); jVec = zeros(nEdges, 1);
     ijVec = zeros(nEdges, 1); jiVec = zeros(nEdges, 1);
     
+    function addST(node, weight)
+        if weight >= 0        
+            iVec(ce) = sNode;
+            jVec(ce) = node;
+            ijVec(ce) = weight;
+        else
+            iVec(ce) = node;
+            jVec(ce) = tNode;
+            ijVec(ce) = -weight;
+        end
+        ce = ce + 1;    
+    end
+
+    function addEdge(i, j, ij, ji)
+        iVec(ce) = i;
+        jVec(ce) = j;
+        ijVec(ce) = ij;
+        jiVec(ce) = ji;
+        ce = ce + 1;
+    end
+    
     nZInfEdges = 0;    
     % Zero/infinity weights
     for r = 1:N
@@ -29,12 +50,7 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
             lowNode  = sub2ind(nodeDim, r, k);
             highNode = sub2ind(nodeDim, r, k + 1);
             
-            iVec(ce)  = lowNode;
-            jVec(ce)  = highNode;
-            ijVec(ce) = 0;
-            jiVec(ce) = 1e100;
-            
-            ce = ce + 1;
+            addEdge(lowNode, highNode, 0, 1e100);            
             nZInfEdges = nZInfEdges + 1;
         end
     end       
@@ -55,19 +71,9 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
             qrk = qrk / 2;
             qrk = qrk + D(k,r) - D(k+1,r);
                         
-            lowNode = sub2ind(nodeDim, r, k);            
-            if qrk > 0     
-                iVec(ce) = sNode;
-                jVec(ce) = lowNode;               
-                ijVec(ce) = qrk;                                
-            else
-                iVec(ce) = lowNode;
-                jVec(ce) = tNode;                
-                ijVec(ce) = -qrk;
-            end
-            assert(ijVec(ce) >= 0);
-            nStEdges = nStEdges + 1;
-            ce = ce + 1;                                                           
+            lowNode = sub2ind(nodeDim, r, k);
+            addST(lowNode, qrk);            
+            nStEdges = nStEdges + 1;            
         end
     end   
     assert(nStEdges == nNodes);    
@@ -114,11 +120,7 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
                     end
                     assert(arr >= 0);
                     
-                    iVec(ce) = lowNode;
-                    jVec(ce) = highNode;
-                    ijVec(ce) = arr;
-                    jiVec(ce) = arr;
-                    ce = ce + 1;     
+                    addEdge(lowNode, highNode, arr, arr);                    
                     nAlphaEdges = nAlphaEdges + 1;                    
                 end
             end           
@@ -126,10 +128,14 @@ function [ x, max_flow ] = MultiLabelSubModularBasic( D, W, V )
     end    
     
     assert(all(iVec ~= jVec));    
-        
+
+    elMat = [iVec jVec ijVec jiVec];
+    
     [max_flow, cut] = BK_mex(iVec, jVec, ijVec, jiVec, nNodes, sNode, tNode);        
     cut = cut(2:end); % 1-index
     
+    % Recall that x(n) = 1 if node n was assigned to the SINK.
+    %
     % Let k' be the true optimal label. Then node (r, k) is labelled 1 (SINK)
     % if k >= k' and 0 otherwise. We assign k' as the first SINK label. See
     % the diagram on page 8.    
