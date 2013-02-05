@@ -120,8 +120,9 @@ wvec = vertcat(swij + 1i*svij, swij + 1i*svij);
 W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 
 % run the optimization
-%x = MultiLabelSubModular_mex(D', W, Vm);
+xMex = MultiLabelSubModular_mex(D', W, Vm);
 [x, max_flow, elMat] = MultiLabelSubModularBasic(D', W, Vm);
+assert(all(xMex == x));
 
 if nargout > 1 % compute energy as well
     N = size(D,1);
