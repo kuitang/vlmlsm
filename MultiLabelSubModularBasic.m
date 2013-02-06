@@ -16,8 +16,9 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     
     nodeDim = [N L-1];
     
-    sNode = -1; tNode = -2;
-    
+    %sNode = nNodes + 1; tNode = nNodes + 2;
+    sNode = -1 ; tNode = -2;
+
     ce = 1; % current edge
     iVec = zeros(nEdges, 1); jVec = zeros(nEdges, 1);
     ijVec = zeros(nEdges, 1); jiVec = zeros(nEdges, 1);
@@ -58,15 +59,20 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     
     % Unary/source/sink weights
     nStEdges = 0;
+    % For debugging
+    allZeroQrkInner = true;    
     for r = 1:N
         for k = 1:(L - 1)
             qrk = 0;
             for rr = find(W(:,r))'
                 fw = full(W(rr,r)); w = real(fw); v = int32(imag(fw));
                 assert(w > 0);                
-                assert(v > 0 && v <= nV);
+                assert(v > 0 && v <= nV);                                
 
                 qrk = qrk + w * (V(k,1,v) + V(k,L,v) - V(k+1,1,v) - V(k+1,L,v));
+            end
+            if qrk ~= 0
+                allZeroQrkInner = false;                
             end
             qrk = qrk / 2;
             qrk = qrk + D(k,r) - D(k+1,r);
@@ -75,7 +81,12 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
             addST(lowNode, qrk);            
             nStEdges = nStEdges + 1;            
         end
-    end   
+    end
+    
+    if allZeroQrkInner
+        warning('All qrk inner sums were zeros. May have problems.');
+    end
+    
     assert(nStEdges == nNodes);    
     
     % Pairwise weights
@@ -113,14 +124,17 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
                     highNode = sub2ind(nodeDim, rr, kk);
                                                                                     
                     arr = w * (Vv(k,kk) + Vv(k+1,kk+1) - Vv(k+1,kk) - Vv(k,kk+1));
-                    arr = -arr / 2;
+                    arr = -arr;
+                    %arr = -arr / 2;
                     % Sometimes we get minor negative perturbation
                     if arr < 0 && arr >= -eps
                         arr = 0;
                     end
                     assert(arr >= 0);
                     
-                    addEdge(lowNode, highNode, arr, arr);                    
+                    addEdge(lowNode, highNode, arr, 0);    
+                    %addEdge(lowNode, highNode, arr, arr);                    
+
                     nAlphaEdges = nAlphaEdges + 1;                    
                 end
             end           
@@ -130,8 +144,9 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     assert(all(iVec ~= jVec));    
 
     elMat = [iVec jVec ijVec jiVec];
+    elMat(elMat == 1e100) = inf;
     
-    [max_flow, cut] = BK_mex(iVec, jVec, ijVec, jiVec, nNodes, sNode, tNode);        
+    [max_flow, cut] = BK_mex(iVec, jVec, ijVec, jiVec, nNodes, sNode, tNode)     
     cut = cut(2:end); % 1-index
     
     % Recall that x(n) = 1 if node n was assigned to the SINK.

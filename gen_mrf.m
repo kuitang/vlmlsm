@@ -10,13 +10,20 @@ function [ D, W, Vi, Vm ] = gen_mrf( N, L, edge_prob )
 
     D = rand(N, L);
     
-    nzmat = rand(N, N) < edge_prob;
+    nzmat = 0;
+    while sum(nzmat(:)) == 0
+        nzmat = rand(N, N) < edge_prob;
+        % remove diagonal;       
+        % http://www.mathworks.com/matlabcentral/newsreader/view_thread/47182
+        nzmat(1:N+1:N*N) = 0;   
+    end
     W = ones(N, N) .* nzmat;
     %W = abs(rand(N, N) .* nzmat);
   
-    seq = cumsum(rand(1, L));
-    Vm = abs(bsxfun(@minus, seq, seq'));
-    Vi = ones(N, N);
+    seq1 = cumsum(rand(1, L));
+    seq2 = cumsum(rand(1, L));
+    Vm = abs(bsxfun(@minus, seq1, seq2'));
+    Vi = ones(N, N) .* nzmat;
     
 %     Vm = zeros(L, L, 2);
 %     % Generate a random monotonic sequence
