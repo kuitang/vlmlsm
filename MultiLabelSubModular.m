@@ -1,4 +1,4 @@
-function [x, e, elMat] = MultiLabelSubModular(D, W, Vi, Vm)
+function [x, e, elMat, maxFlow] = MultiLabelSubModular(D, W, Vi, Vm)
 %
 %
 %
@@ -120,9 +120,9 @@ wvec = vertcat(swij + 1i*svij, swij + 1i*svij);
 W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 
 % run the optimization
-xMex = MultiLabelSubModular_mex(D', W, Vm);
-[x, max_flow, elMat] = MultiLabelSubModularBasic(D', W, Vm);
-assert(all(xMex == x));
+%xMex = MultiLabelSubModular_mex(D', W, Vm);
+[x, maxFlow, elMat] = MultiLabelSubModularBasic(D', W, Vm);
+%assert(all(xMex == x));
 
 if nargout > 1 % compute energy as well
     N = size(D,1);

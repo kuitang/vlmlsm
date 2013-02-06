@@ -1,4 +1,4 @@
-function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
+function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     
     [L, N] = size(D);
     nV = size(V, 3);
@@ -67,13 +67,20 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
             for rr = find(W(:,r))'
                 fw = full(W(rr,r)); w = real(fw); v = int32(imag(fw));
                 assert(w > 0);                
-                assert(v > 0 && v <= nV);                                
+                assert(v > 0 && v <= nV);
+                
+                if r < rr
+                    Vv = V(:,:,v);
+                elseif r > rr
+                    Vv = V(:,:,v)';
+                else
+                    assert('You cant have a self-edge');                    
+                end
+                
+                qrk = qrk + w * (Vv(k,1) + Vv(k,L) - Vv(k+1,1) - Vv(k+1,L));
+                %qrk = qrk + w * (Vv(k,L) - Vv(k+1,L));
+            end
 
-                qrk = qrk + w * (V(k,1,v) + V(k,L,v) - V(k+1,1,v) - V(k+1,L,v));
-            end
-            if qrk ~= 0
-                allZeroQrkInner = false;                
-            end
             qrk = qrk / 2;
             qrk = qrk + D(k,r) - D(k+1,r);
                         
@@ -81,6 +88,9 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
             addST(lowNode, qrk);            
             nStEdges = nStEdges + 1;            
         end
+        if qrk ~= 0
+            allZeroQrkInner = false;                
+        end        
     end
     
     if allZeroQrkInner
@@ -114,7 +124,7 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
             elseif r > rr
                 Vv = V(:,:,v)';
             else
-                continue;
+                assert('You cant have a self edge');
             end
 
             for k = 1:(L - 1)
@@ -124,8 +134,8 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
                     highNode = sub2ind(nodeDim, rr, kk);
                                                                                     
                     arr = w * (Vv(k,kk) + Vv(k+1,kk+1) - Vv(k+1,kk) - Vv(k,kk+1));
-                    arr = -arr;
-                    %arr = -arr / 2;
+                    %arr = -arr;
+                    arr = -arr / 2;
                     % Sometimes we get minor negative perturbation
                     if arr < 0 && arr >= -eps
                         arr = 0;
@@ -146,8 +156,8 @@ function [ x, max_flow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     elMat = [iVec jVec ijVec jiVec];
     elMat(elMat == 1e100) = inf;
     
-    [max_flow, cut] = BK_mex(iVec, jVec, ijVec, jiVec, nNodes, sNode, tNode)     
-    cut = cut(2:end); % 1-index
+    [maxFlow, cut] = BK_mex(iVec, jVec, ijVec, jiVec, nNodes, sNode, tNode);
+    cut = cut(2:end) % 1-index
     
     % Recall that x(n) = 1 if node n was assigned to the SINK.
     %
