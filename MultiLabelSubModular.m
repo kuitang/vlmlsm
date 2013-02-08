@@ -123,11 +123,13 @@ if nargout > 1 % compute energy as well
     for r = 1:N  
         rrs = find(W(r,:));
         for rr = rrs(rrs > r)            
-            w = full(W(r,rr));                
+            fw = full(W(r,rr));
+            w = real(fw);
+            v = int32(imag(fw));
 
             if w > 0
                 v = full(Vi(r,rr));
-                e(3) = e(3) + Vm{v}(x(r),x(rr));
+                e(3) = e(3) + w * Vm{v}(x(r),x(rr));
             end
 
         end

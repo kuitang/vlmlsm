@@ -16,7 +16,7 @@ for n = 1:N
 
 %     [xb, eb] = MultiLabelSubModularBruteForce(D, W, Vi, Vm);
 %     [x, e, elMat] = MultiLabelSubModular(D, W, Vi, Vm);
-    W = Vi > 0;
+    %W = Vi > 0;
     [xb, eb] = MultiLabelSubModularBruteForce(D, W, Vi, Vm);
     [x, e, elMat] = MultiLabelSubModular(D, W, Vi, Vm);
     

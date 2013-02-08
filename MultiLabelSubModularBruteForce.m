@@ -78,7 +78,7 @@ function [xMin eMin] = MultiLabelSubModularBruteForce(D, W, Vi, Vm)
                                 
                 if w > 0
                     v = full(Vi(r,rr));
-                    e(3) = e(3) + Vm{v}(x(r),x(rr));                    
+                    e(3) = e(3) + w * Vm{v}(x(r),x(rr));                    
                 end
                 
             end
