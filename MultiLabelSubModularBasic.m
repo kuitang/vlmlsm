@@ -156,7 +156,7 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
                     highNode = offset(rr) + kk;                    
                     
                     inside = Vv(k,kk) + Vv(k+1,kk+1) - Vv(k+1,kk) - Vv(k,kk+1);
-                    if abs(inside) <= 2*eps
+                    if abs(inside) <= 10*eps
                         inside = 0;
                     end
                     arr = -(w * inside) / 2;                                        
