@@ -8,6 +8,7 @@ success = 0;
 for n = 1:N
 
     [D, W, Vi, Vm] = gen_mrf(randi(4)+1, randi(4)+1, rand);
+    %[D, W, Vi, Vm] = gen_mrf(2, 2, rand);
 
     % Ignore unaries
     %D = zeros(6, 3);

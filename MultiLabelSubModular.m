@@ -127,7 +127,35 @@ W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 if nargout > 1 % compute energy as well
     N = size(D,1);
     
-    e(3) = Vm(sub2ind(size(Vm), x(swi), x(swj), svij')) * swij; % pair-wise term
+%     e(3) = 0;
+%     % Pairwise term
+%     for r = 1:N
+%         for rr = (r+1):N                
+%             w = full(W(r,rr));                
+% 
+%             if w > 0
+%                 v = full(Vi(r,rr));
+%                 e(3) = e(3) + Vm(x(r),x(rr),v);
+%             end
+% 
+%         end
+%     end
+    
+    e(3) = 0;
+    % Pairwise term
+    for r = 1:N
+        for rr = (r+1):N                
+            fw = full(W(r,rr));
+            w = real(fw);
+            v = int32(imag(fw));            
+
+            if w > 0                
+                e(3) = e(3) + Vm(x(r),x(rr),v);
+            end
+
+        end
+    end         
+    
     e(2) = sum(D(sub2ind(size(D), 1:N, x))); % data term (unary)
     e(1) = sum(e(2:3));
 end

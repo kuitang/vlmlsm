@@ -49,21 +49,41 @@ function [xmin emin] = MultiLabelSubModularBruteForce(D, W, Vi, Vm)
     swj = wj(sel);
     swij = wij(sel);
     svij = vij(sel);
-    
+
+    % symmetrize: add the transpose entries
+    ivec = vertcat(swi, swj);
+    jvec = vertcat(swj, swi);
+    wvec = vertcat(swij, swij);
+    vvec = vertcat(svij, svij);
+    W =  sparse(ivec, jvec, wvec, size(W,1), size(W,2));
+    Vi = sparse(ivec, jvec, vvec, size(W,1), size(W,2));
+
     % Iterate in lexicographic order
     xs = enumerate(L * ones(1, N));
     for nn = 1:size(xs, 1)
         x = xs(nn,:);
-                
+           
+        e(3) = 0;
         % Pairwise term
-        energy(3) = Vm(sub2ind(size(Vm), x(swi), x(swj), svij')) * swij;        
-        energy(2) = sum(D(sub2ind(size(D), 1:N, x))); % data term (unary)        
-        energy(1) = sum(energy(2:3));
+        for r = 1:N            
+            for rr = (r+1):N                
+                w = full(W(r,rr));                
+                                
+                if w > 0
+                    v = full(Vi(r,rr));
+                    e(3) = e(3) + Vm(x(r),x(rr),v);
+                end
+                
+            end
+        end
         
-        if energy(1) < emin(1)            
-            emin = energy;
+        e(2) = sum(D(sub2ind(size(D), 1:N, x))); % data term (unary)
+        e(1) = sum(e(2:3));         
+        if e(1) < emin(1)            
+            emin = e;
             xmin = x;
-        end                        
+        end 
+       
     end    
 end
 

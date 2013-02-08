@@ -157,7 +157,7 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     elMat(elMat == 1e100) = inf;
     
     [maxFlow, cut] = BK_mex(iVec, jVec, ijVec, jiVec, nNodes, sNode, tNode);
-    cut = cut(2:end) % 1-index
+    cut = cut(2:end); % 1-index
     
     % Recall that x(n) = 1 if node n was assigned to the SINK.
     %
