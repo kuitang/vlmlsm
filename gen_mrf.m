@@ -1,14 +1,25 @@
-function [ D, W, Vi, Vm ] = gen_mrf( N, L, edge_prob )
+function [ D, W, Vi, Vm ] = gen_mrf( N, maxL, edge_prob, sigFigs )
 % [D, W, Vi, Vm] = gen_mrf(N, L, Nmonge, edge_prob)
 % Generate test-case submodular mrf for MultiLabelSubModular
-% [D, W, Vi, Vm] inputs to MultiLablSubModular_mex
 %
-% N - number of nodes
-% L - number of labels
-% Nmonge - number of Monge matrices to create
-% edge_prob of all N*(N-1)/2 edges, what fraction will appear?
+% N         - number of nodes
+% maxL      - Maximum number of labels
+% edge_prob - of all N*(N-1)/2 edges, what fraction will appear?
+% sigFigs   - if present, round (generate nice numbers for debug cases)
 
-    D = rand(N, L);
+    if nargin <= 3
+        sigFigs = 0; % Sentinel
+    end
+    
+    D = cell(N, 1);
+    for n = 1:N
+        % Must have at least two states!
+        L = 1 + randi(maxL - 1, 1);
+        D{n} = rand(1, L);
+        if sigFigs
+            D{n} = fround(D{n}, sigFigs);
+        end
+    end    
     
     nzmat = 0;
     while sum(nzmat(:)) == 0
@@ -17,28 +28,60 @@ function [ D, W, Vi, Vm ] = gen_mrf( N, L, edge_prob )
         % http://www.mathworks.com/matlabcentral/newsreader/view_thread/47182
         nzmat(1:N+1:N*N) = 0;   
     end
-    W = ones(N, N) .* nzmat;
+    
+    W = ones(N, N) .* nzmat;        
     %W = abs(rand(N, N) .* nzmat);
+    % Symmetrize
+    W = 0.5 * (W + W');
   
+    % For each nonzero in W (existing edge), create a Monge matrix of the
+    % appropriate dimensionality    
+        
+    Vi = zeros(N, N);
+    
+    [i, j] = find(W);    
+    nNZ = length(i);
+    Vm = cell(nNZ, 1);
+    
+    iMonge = 1;
+    for n = 1:nNZ
+        ii = i(n);
+        jj = j(n);
+        if ii < jj
+            Li = length(D{ii});
+            Lj = length(D{jj});
+            
+            Vm{iMonge} = makeMonge(Li, Lj, sigFigs);
+            Vi(ii,jj) = iMonge;
+            iMonge = iMonge + 1;
+        end
+    end
+
+    % Symmetrize the index matrix        
+    Vi = Vi + Vi';
+end
+
+function V = makeMonge(N, M, sigFigs)
+    % Start by constructing a square matrix for simplicity
+    maxL = max(N, M);    
     while true
-        seq1 = cumsum(rand(1, L));
-        seq2 = cumsum(rand(1, L));
-        Vm = abs(bsxfun(@minus, seq1, seq2'));        
-        if IsMonge(Vm)            
+        % Monotonic sequence
+        %     Vm(:,:,2) = Vm(:,:,1).^2; % L2 term
+        seq1 = cumsum(rand(1, maxL));
+        seq2 = cumsum(rand(1, maxL));
+        V = abs(bsxfun(@minus, seq1, seq2'));
+        if sigFigs
+            V = fround(V, sigFigs);
+        end
+        if IsMonge(V)            
             break;
         end        
     end
     
-    Vi = ones(N, N) .* nzmat;
-%     Vm = zeros(L, L, 2);
-%     % Generate a random monotonic sequence
-%     seq = cumsum(rand(1, L));    
-%     Vm(:,:,1) = abs( bsxfun(@minus, seq, seq') ); % L1 term
-%     Vm(:,:,2) = Vm(:,:,1).^2; % L2 term
-    assert(IsMonge(Vm));
+    % Slice to fit
+    V = V(1:N,1:M);
     
-    
-    %Vi = randi(2, N, N) .* nzmat;
+    assert(IsMonge(V));
 end
 
 %-------------------------------------------------------------------------%

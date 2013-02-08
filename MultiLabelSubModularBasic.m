@@ -1,20 +1,47 @@
 function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
+% x = MultiLabelSubModularBasic(D, W, V) core computation for
+%     the MultiLabelSubModular routine.
+%
+% Inputs:
+%   D   - Unary costs. Length-N cell array of length-K_m vectors
+%   W   - (Sparse) complex symmetric weight and index matrix of size NxN.
+%         Real part is the edge weight. Imaginary part is an integral index
+%         into V, selecting the interaction matrix to use.
+%   V   - Interaction matrices. Length-M cell array of size K_m x K_m
+%
+% Outputs:
+%   x       - Solution vector
+%   maxFlow - Maximum flow in the constructed graph
+%   elMat   - Edge list for the constructed graph
     
-    [L, N] = size(D);
-    nV = size(V, 3);
+    N = length(D);
+    M = length(V);                
+    
     E = nnz(W); % Number of edges in the underlying graph.
-        
-    % Nodes are one-indexed
-    nNodes = N*(L-1); % excluding s/t
     
-    % This equation (except 2*nNodes) was lifted from the C++, but I'm not
-    % sure if its correct, due to the alphas.
+    % Convert (r,k) indices to linear indices. offset(r) is the linear
+    % index of (r,1) MINUS ONE. To compute index of (r,k), write
     %
-    % Presumably, it's supposed to be the number of times you call add_edge,
-    % excluding s and t edges.
-    nEdges = N*(L-2) + E*(L-1)*(L-1) + nNodes;
+    % offset(r) + k.
     
-    nodeDim = [N L-1];
+    nStates = zeros(N, 1);
+    for n = 1:N
+        nStates(n) = length(D{n});
+        assert(nStates(n) >= 2, 'Each node must have at least two states!')
+    end
+    maxNStates = max(nStates);
+    nStatesMinusOne = nStates - 1;
+    offset = cumsum(nStatesMinusOne); % shift it
+    offset = [ 0; offset(1:(end-1)) ];
+
+    
+    % Each node r nStatesMinusOne(r) nodes in the graph.
+    nNodes = sum(nStatesMinusOne); % excluding s/t    
+
+    % Upper bound the number of edges.
+    % TODO: Do something smarter if this runs into memory constraints. Or
+    % maybe just rely on BK's dynamic allocation (trade time for memory)
+    nEdges = nNodes + sum(nStates - 2) + E * max(nStates);
     
     %sNode = nNodes + 1; tNode = nNodes + 2;
     sNode = -1 ; tNode = -2;
@@ -37,6 +64,8 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     end
 
     function addEdge(i, j, ij, ji)
+        assert(i ~= j, 'Cannot add self-loop');
+        assert(i <= nNodes && j <= nNodes, 'Node index out of bounds');
         iVec(ce) = i;
         jVec(ce) = j;
         ijVec(ce) = ij;
@@ -47,55 +76,60 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     nZInfEdges = 0;    
     % Zero/infinity weights
     for r = 1:N
-        for k = 1:(L - 2)
-            lowNode  = sub2ind(nodeDim, r, k);
-            highNode = sub2ind(nodeDim, r, k + 1);
+        for k = 1:(nStates(r) - 2)
+            lowNode  = offset(r) + k;
+            highNode = offset(r) + k + 1;            
             
             addEdge(lowNode, highNode, 0, 1e100);            
             nZInfEdges = nZInfEdges + 1;
         end
     end       
-    assert(nZInfEdges == N * (L - 2));
+    assert(nZInfEdges == sum(nStates - 2));
     
     % Unary/source/sink weights
-    nStEdges = 0;
-    % For debugging
-    allZeroQrkInner = true;    
+    nStEdges = 0;        
     for r = 1:N
-        for k = 1:(L - 1)
+        for k = 1:nStatesMinusOne(r)        
             qrk = 0;
             for rr = find(W(:,r))'
                 fw = full(W(rr,r)); w = real(fw); v = int32(imag(fw));
                 assert(w > 0);                
-                assert(v > 0 && v <= nV);
+                assert(v > 0 && v <= M);
+                
+                % By convention, k is the setting of r and kk is the setting of
+                % rr. Each V matrix is indexed by lower-numbered variable
+                % on rows, higher-numbered variable on columns.
+                %
+                % However, during the iteration, we will also encounter the
+                % setting x_1 = kk, x_2 = k. Then we will need to look up
+                % V{v}(kk,k) instead.
+                %
+                % Note that little-v is symmetric in r and rr by definition
+                % of the W matrix. But the matrix V{v} is note symmetric.
                 
                 if r < rr
-                    Vv = V(:,:,v);
+                    Vv = V{v};
                 elseif r > rr
-                    Vv = V(:,:,v)';
+                    Vv = V{v}';
                 else
                     assert('You cant have a self-edge');                    
                 end
                 
-                qrk = qrk + w * (Vv(k,1) + Vv(k,L) - Vv(k+1,1) - Vv(k+1,L));
-                %qrk = qrk + w * (Vv(k,L) - Vv(k+1,L));
+                % Dimensions of the interaction matrix must match
+                assert(nStates(r)  == size(Vv, 1));
+                assert(nStates(rr) == size(Vv, 2));
+                
+                qrk = qrk + w * (Vv(k,1) + Vv(k,end) - Vv(k+1,1) - Vv(k+1,end));                
             end
 
             qrk = qrk / 2;
-            qrk = qrk + D(k,r) - D(k+1,r);
-                        
-            lowNode = sub2ind(nodeDim, r, k);
-            addST(lowNode, qrk);            
+            qrk = qrk + D{r}(k) - D{r}(k+1);
+            
+            node = offset(r) + k;            
+            addST(node, qrk);            
             nStEdges = nStEdges + 1;            
-        end
-        if qrk ~= 0
-            allZeroQrkInner = false;                
-        end        
-    end
-    
-    if allZeroQrkInner
-        warning('All qrk inner sums were zeros. May have problems.');
-    end
+        end       
+    end    
     
     assert(nStEdges == nNodes);    
     
@@ -105,53 +139,37 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
         for rr = find(W(:,r))'
             fw = full(W(rr,r)); w = real(fw); v = int32(imag(fw));
             assert(w > 0);
-            assert(v > 0 && v <= nV);
-            
-            % By convention, k is the setting of r and kk is the setting of
-            % rr. However, each V matrix-slice is indexed by convention
-            % with lower-numbered variable on rows, higher-numbered
-            % variable on columns. For instance, if V(:,:,v) contained the
-            % x_1 and x_2 interactions and x_1 = k, x_2 = kk, then we would
-            % look up V(k,kk,v).
-            %
-            % However, during the iteration, we will also encounter the
-            % setting x_1 = kk, x_2 = k. Then we will need to look up
-            % V(kk,k,v).
-            %
-            % Note that little-v is symmetric in r and rr.            
+            assert(v > 0 && v <= M);
+                        
             if r < rr
-                Vv = V(:,:,v);
+                Vv = V{v};
             elseif r > rr
-                Vv = V(:,:,v)';
+                Vv = V{v}';
             else
                 assert('You cant have a self edge');
             end
 
-            for k = 1:(L - 1)
-                lowNode = sub2ind(nodeDim, r, k);                                                            
+            for k = 1:nStatesMinusOne(r)
+                lowNode = offset(r) + k;                
                 
-                for kk = 1:(L - 1)
-                    highNode = sub2ind(nodeDim, rr, kk);
-                                                                                    
-                    arr = w * (Vv(k,kk) + Vv(k+1,kk+1) - Vv(k+1,kk) - Vv(k,kk+1));
-                    %arr = -arr;
-                    arr = -arr / 2;
-                    % Sometimes we get minor negative perturbation
-                    if arr < 0 && arr >= -eps
-                        arr = 0;
+                for kk = 1:nStatesMinusOne(rr)
+                    highNode = offset(rr) + kk;                    
+                    
+                    inside = Vv(k,kk) + Vv(k+1,kk+1) - Vv(k+1,kk) - Vv(k,kk+1);
+                    if abs(inside) <= 2*eps
+                        inside = 0;
                     end
+                    arr = -(w * inside) / 2;                                        
                     assert(arr >= 0);
                     
-                    addEdge(lowNode, highNode, arr, 0);    
-                    %addEdge(lowNode, highNode, arr, arr);                    
-
+                    addEdge(lowNode, highNode, arr, 0);                        
                     nAlphaEdges = nAlphaEdges + 1;                    
                 end
             end           
         end
     end    
     
-    assert(all(iVec ~= jVec));    
+    assert(all(iVec(iVec ~= 0) ~= jVec(jVec ~= 0)));    
 
     elMat = [iVec jVec ijVec jiVec];
     elMat(elMat == 1e100) = inf;
@@ -166,15 +184,14 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     % the diagram on page 8.    
     x = zeros(1, N);
     for r = 1:N
-        x(r) = L;        
+        x(r) = nStates(r);        
         
         k = 1;
-        % The highest value we explicitly track is L - 1.
-        while k <= L - 1 && ~cut(sub2ind(nodeDim, r, k)) % while node is in SOURCE
+        % The highest value we explicitly track is nStatesMinusOne(r)
+        while k <= nStatesMinusOne(r) && ~cut(offset(r) + k) % while node is in SOURCE
             k = k + 1;
         end
         
         x(r) = k;        
     end
 end
-

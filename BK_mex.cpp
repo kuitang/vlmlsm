@@ -73,7 +73,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   // Translate sparse entries to a BK graph
   typedef Graph<double, double, double> dGraph;
   dGraph *gp = new dGraph(nNodes, nEdges, mexErrMsgTxt);
-  mexPrintf("nNodes = %d\n", nNodes);
+  //mexPrintf("nNodes = %d\n", nNodes);
   // IMPORTANT! Enables one-indexing transparently from MATLAB. (We can
   // effectively ignore node 0 if we want.)
   gp->add_node(nNodes + 1);
@@ -86,6 +86,10 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
     j = jVec[n];
     ij = ijVec[n];
     ji = jiVec[n];
+    // Allow for empty edges.
+    if ((i == 0  && j == 0) || (ij == 0.0 && ji == 0.0)) {
+      continue;
+    }
     if (i == sNode) {
       // In MATLAB, we added an entry (sNode, j). graph.h expects a call
       // (j, w, 0) (since we have only a flow from the source)

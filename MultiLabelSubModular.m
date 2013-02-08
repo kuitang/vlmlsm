@@ -1,32 +1,27 @@
 function [x, e, elMat, maxFlow] = MultiLabelSubModular(D, W, Vi, Vm)
-%
-%
-%
-%
 % Discrete optimization of the following multi-label functional
 %
-% x = argmin \sum_i D_i(x_i) + \sum_ij w_ij V_k (x_i, x_j)
+% x = argmin \sum_i D_i(x_i) + \sum_ij w_ij V_m (x_i, x_j)
 %
-% for N-dimensional x, over L discrete labels
-% Provided that the energy is multilabel submodular.
+% for N-dimensional x, where dimension m has K_m distinct labels and all
+% interaction matrices V_m are submodular.
 %
 % Usage:
-%   [x e] = MultiLabelSubModular(D, G, Vi, Vm)
+%   [x e] = MultiLabelSubModularBruteForce(D, G, Vi, Vm)
 %
 % Inputs:
-%   D   - Data term of size NxL
-%   W   - Pair-wise weights (w_ij) of size NxN
-%   Vi  - Index k for each pair ij, selecting the pair-wise interaction V_k. 
-%         Vi is of size NxN
-%         note that for each non-zero entry in W there must be a
-%         corresponding non-zero entry in Vi. Entries must be proper
-%         indices into Vm, i.e., integer numbers in the range
-%         [1..size(Vm,3)]
-%   Vm  - A concatanation of matrices V_k of size LxLxK
+%   D   - Unary costs. Length-N cell array of length-K_m vectors
+%   W   - (Sparse) pair-wise weights (w_ij) of size NxN. Lower triangular
+%         discarded.
+%   Vi  - Interaction index matrix of size NxN. Entry ij selects the
+%         interaction matrix for pair ij. Same shape and sparsity as W.
+%   Vm  - Interaction matrices. Length-M cell array of size K_m x K_m
 %
 % Outputs:
-%   x   - optimal assignment
-%   e   - energy of optimal assignment
+%   x - optimal assignment
+%   e - energy of optimal assignment. Total energy in e(1), unary energy
+%       in e(2), interaction energy in e(3).
+%
 %
 % 
 %-------------------------------------- 
@@ -35,9 +30,15 @@ function [x, e, elMat, maxFlow] = MultiLabelSubModular(D, W, Vi, Vm)
 % requires compilation of mex file
 %
 % >> mex -O -largeArrayDims -DNDEBUG graph.cpp maxflow.cpp...
-%        MultiLabelSubModular_mex.cpp -output MultiLabelSubModular_mex
+%        BK_mex.cpp -output BK_mex
 %
 %--------------------------------------
+%
+% Copyright (c) Kui Tang
+% Department of Applied Physics and Applied Mathematics
+% Columbia University
+%
+% Based on code by Bagon Shai
 %
 % Copyright (c) Bagon Shai
 % Department of Computer Science and Applied Mathmatics
@@ -52,7 +53,6 @@ function [x, e, elMat, maxFlow] = MultiLabelSubModular(D, W, Vi, Vm)
 % all copies or substantial portions of the Software.
 %
 % The Software is provided "as is", without warranty of any kind.
-%
 %
 %
 % If used in an academic research, the follwoing citation must be included
@@ -72,24 +72,14 @@ function [x, e, elMat, maxFlow] = MultiLabelSubModular(D, W, Vi, Vm)
 %       "Matlab Implementation of Schlezinger and Flach Submodular Optimization",
 %       June 2012.
 %
-%
-%
-% 
-%
-
 
 % check Monge
 assert( IsMonge(Vm), 'MultiLabelSubModular:submodularityV',...
     'Matrices Vm are not submodular');
 
-
 % make sure W is non negative
 assert( all( nonzeros(W) > 0 ), 'MultiLabelSubModular:submodularityW',...
     'weights w_ij must be non-negative');
-
-
-
-
 
 % remove diagonal of W
 [wi wj wij] = find(W);
@@ -104,9 +94,9 @@ assert( isequal(vi, wi) && isequal(wj, vj), 'MultiLabelSubModular:Vi', ...
 assert( all(vij == round(vij)), 'MultiLabelSubModular:Vi',...
     'Vi must have integer index entries');
 
-assert( all( vij>= 1 ) && all( vij <= size(Vm,3) ),...
-    'MultiLabelSubModular:Vi',...
-    'Vi entries must be between 1 and %d', size(Vm,3));
+% assert( all( vij>= 1 ) && all( vij <= size(Vm,3) ),...
+%     'MultiLabelSubModular:Vi',...
+%     'Vi entries must be between 1 and %d', size(Vm,3));
 
 swi = wi(sel);
 swj = wj(sel);
@@ -120,65 +110,57 @@ wvec = vertcat(swij + 1i*svij, swij + 1i*svij);
 W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 
 % run the optimization
-%xMex = MultiLabelSubModular_mex(D', W, Vm);
-[x, maxFlow, elMat] = MultiLabelSubModularBasic(D', W, Vm);
+%xMex = MultiLabelSubModular_mex(D, W, Vm);
+[x, maxFlow, elMat] = MultiLabelSubModularBasic(D, W, Vm);
 %assert(all(xMex == x));
 
 if nargout > 1 % compute energy as well
-    N = size(D,1);
-    
-%     e(3) = 0;
-%     % Pairwise term
-%     for r = 1:N
-%         for rr = (r+1):N                
-%             w = full(W(r,rr));                
-% 
-%             if w > 0
-%                 v = full(Vi(r,rr));
-%                 e(3) = e(3) + Vm(x(r),x(rr),v);
-%             end
-% 
-%         end
-%     end
-    
+    N = length(D);    
+        
+    % Pairwise term
     e(3) = 0;
     % Pairwise term
-    for r = 1:N
-        for rr = (r+1):N                
-            fw = full(W(r,rr));
-            w = real(fw);
-            v = int32(imag(fw));            
+    for r = 1:N  
+        rrs = find(W(r,:));
+        for rr = rrs(rrs > r)            
+            w = full(W(r,rr));                
 
-            if w > 0                
-                e(3) = e(3) + Vm(x(r),x(rr),v);
+            if w > 0
+                v = full(Vi(r,rr));
+                e(3) = e(3) + Vm{v}(x(r),x(rr));
             end
 
         end
-    end         
+    end
     
-    e(2) = sum(D(sub2ind(size(D), 1:N, x))); % data term (unary)
+    e(2) = 0;
+    for r = 1:N
+        e(2) = e(2) + D{r}(x(r));
+    end    
+    
     e(1) = sum(e(2:3));
 end
 
 %-------------------------------------------------------------------------%
 function tf = IsMonge(M)
 %
-% Checks if matrix M is a Monge matrix.
+% Checks if all entries of cell array M are Monge matrices.
 %
 % The following must hold for a Monge matrix (with finite entries):
 %   M_ik + M_jl <= M_il + M_jk \forall 1 <= i <= j <= m, 1 <= k <= l <= n
 %
-% M may be 3D array, in which case each 2D "slice" is checked for Monge
-% property
-%
 
 tf = true;
 
-for si=1:size(M,3)
-    [m n] = size(M(:,:,si));
-    for ii=1:(m-1)
-        for kk=1:(n-1)
-            tf =  ( M(ii,kk) + M(ii+1,kk+1) <= M(ii, kk+1) + M(ii+1, kk) );
+N = length(M);
+for n = 1:N
+    V = M{n};
+    [maxRow, maxCol] = size(V);
+    maxRow = maxRow - 1;
+    maxCol = maxCol - 1;
+    for ii=1:maxRow
+        for kk=1:maxCol
+            tf =  ( V(ii,kk) + V(ii+1,kk+1) <= V(ii, kk+1) + V(ii+1, kk) );
             if ~tf, return; end
         end
     end

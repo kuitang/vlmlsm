@@ -1,10 +1,9 @@
 function [ xs, fill_n ] = enumerate( limits, level, prefix, fill_n, xs)
-% xs = enumerate(levels, limits) generates all x values
-% level = Recursive argument.
-% limits = vector of upper limits.
+% xs = enumerate(limits) generates all x values between 1 and limits.
 %
-% xs = N x D array of all N D-dimensional values; dimension d from
-%      limits(d).
+% limits = vector of upper limits, one per dimension.
+%
+% The rest are recursion arguments; ignore them.
 
     D = length(limits);
 
