@@ -82,26 +82,18 @@ assert( all( nonzeros(W) > 0 ), 'MultiLabelSubModular:submodularityW',...
     'weights w_ij must be non-negative');
 
 % remove diagonal of W
-[wi wj wij] = find(W);
-sel = wi < wj;
-if ~any(sel)
-    sel = wi > wj;
-end
-[vi vj vij] = find(Vi);
-assert( isequal(vi, wi) && isequal(wj, vj), 'MultiLabelSubModular:Vi', ...
+[swi, swj, swij] = findUT(W);
+[svi, svj, svij] = findUT(Vi);
+
+assert( isequal(svi, swi) && isequal(swj, svj), 'MultiLabelSubModular:Vi', ...
     'Index matrix Vi must have non-zeros pattern matching W');
 
-assert( all(vij == round(vij)), 'MultiLabelSubModular:Vi',...
+assert( all(svij == round(svij)), 'MultiLabelSubModular:Vi',...
     'Vi must have integer index entries');
 
 % assert( all( vij>= 1 ) && all( vij <= size(Vm,3) ),...
 %     'MultiLabelSubModular:Vi',...
 %     'Vi entries must be between 1 and %d', size(Vm,3));
-
-swi = wi(sel);
-swj = wj(sel);
-swij = wij(sel);
-svij = vij(sel);
 
 % symmetrize: add the transpose entries
 ivec = vertcat(swi, swj);

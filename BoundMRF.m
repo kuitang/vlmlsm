@@ -1,4 +1,4 @@
-function [ D, newW, Vi, Vm ] = boundMRF( theta, W, A, B, alpha, epsilon )
+function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
 % Construct an MRF for the Bethe bound approximation.
 %
 % Output an MRF with N nodes and, each having as many labels as
@@ -12,6 +12,7 @@ function [ D, newW, Vi, Vm ] = boundMRF( theta, W, A, B, alpha, epsilon )
 % epsilon - tolerance from the true optimum value
 %
 % D, W, Vi, Vm - Arguments to pass to MultiLabelSubModular
+% qr           - N-cell array of probabilities corresponding the label levels
 %
 % Equations and numbers taken from the 31 Dec 2012 draft.
 
@@ -22,6 +23,8 @@ function [ D, newW, Vi, Vm ] = boundMRF( theta, W, A, B, alpha, epsilon )
     iVec = iVec(sel);
     jVec = jVec(sel);
     wVec = wVec(sel);
+    
+    alpha = exp(abs(W)) - 1;
     
     nEdges = length(iVec);    
 
@@ -72,27 +75,29 @@ function [ D, newW, Vi, Vm ] = boundMRF( theta, W, A, B, alpha, epsilon )
     % Interval size
     intervalSz = sqrt(2*epsilon / (eigenBound * nNodes));
     
-    function qr = qRange(n)
-        qr = A(n):intervalSz:(1 - B(n));
-        if isempty(qr) % Whole interval is within intervalSz
-            qr = [A(n) (1 - B(n))];
-        elseif qr(end) ~= (1 - B(n)) % Did not include the endpoint
-            qr = [qr (1 - B(n))]
+    qr = cell(nNodes, 1);
+    for n = 1:nNodes
+        q = A(n):intervalSz:(1 - B(n));
+        if isempty(q) % Whole interval is within intervalSz
+            q = [A(n) (1 - B(n))];
+        elseif q(end) ~= (1 - B(n)) % Did not include the endpoint
+            q = [q (1 - B(n))];
         end
-        assert(length(qr) >= 2, 'not enough intervals!');        
-    end
-            
+        assert(length(q) >= 2, 'not enough intervals!');        
+        
+        qr{n} = q;
+    end        
+    
     % Unaries: Term two of (Eq 4)
     D = cell(nNodes, 1);    
-    for n = 1:nNodes
-        qr = qRange(n);        
-        D{n} = zeros(size(qr));                        
+    for n = 1:nNodes        
+        D{n} = zeros(size(qr{n}));                        
         
         t = theta(n);
-        for iq = 1:length(qr)
-            q = qr(iq);
+        for iq = 1:length(qr{n})
+            q = qr{n}(iq);
             S = -q * log(q) - (1 - q) * log(1 - q);
-            D{n}(iq) = -t * q + (deg(n) - 1) * S
+            D{n}(iq) = -t * q + (deg(n) - 1) * S;
         end        
     end
     
@@ -105,14 +110,14 @@ function [ D, newW, Vi, Vm ] = boundMRF( theta, W, A, B, alpha, epsilon )
         w = wVec(ne);
         vVec(ne) = ne;        
         
-        alpha = exp(w) - 1;
+        aij = exp(w) - 1;
         if alpha == 0
             warning('Got a zero weight; skipping. May cause problems.');            
             continue;
         end
                 
-        qir = qRange(i);
-        qjr = qRange(j);
+        qir = qr{i};
+        qjr = qr{j};
         Vm{ne} = zeros(length(qir), length(qjr));
         
         for iq = 1:length(qir)
@@ -120,20 +125,9 @@ function [ D, newW, Vi, Vm ] = boundMRF( theta, W, A, B, alpha, epsilon )
                 q_i = qir(iq);
                 q_j = qjr(jq);
                 
-                poly = [alpha -(1 + alpha*(q_i + q_j)) (1 + alpha)*q_i*q_j];
-                rs = roots(poly);
-                
-                if alpha > 0
-                    xi = min(rs);
-                else 
-                    xi = max(rs);
-                end
-                
-                % (Eq 2); linearized
-                marginal = [ 1 + xi - q_i - q_j
-                             q_j - xi
-                             q_i - xi
-                             xi ];
+                [marginal, xi] = marginalize(aij, q_i, q_j);
+                % Linearize
+                marginal = marginal(:);
                 
                 % Lemma 8: If neither q_i nor q_j are zero, then all
                 % marginals should be positive.
