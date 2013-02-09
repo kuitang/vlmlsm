@@ -29,8 +29,8 @@ function [ D, W, Vi, Vm ] = gen_mrf( N, maxL, edge_prob, sigFigs )
         nzmat(1:N+1:N*N) = 0;   
     end
     
-    W = ones(N, N) .* nzmat;        
-    %W = abs(rand(N, N) .* nzmat);
+    %W = ones(N, N) .* nzmat;        
+    W = abs(rand(N, N) .* nzmat);
     % Symmetrize
     W = 0.5 * (W + W');
   
