@@ -3,8 +3,8 @@ path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 
 %% Configure and set the problem
-epsilon = .01;
-theta = [1 2 3]';
+epsilon = 1e-4;
+theta = [-1 -4 2]';
 nNodes = length(theta);
 W = [0 1 2 ; 1 0 1 ; 2 1 0];
 nEdges = nnz(W) / 2;
@@ -26,17 +26,18 @@ Ztrue = sum(exp(-energies(:)));
 probs = exp(-energies) ./ Ztrue;
 
 % Marginalize
-bf12Marginal = squeeze(sum(probs, 3));
-bf13Marginal = squeeze(sum(probs, 2));
-bf23Marginal = squeeze(sum(probs, 1));
+bfTwoMarginals = zeros(2,2,3);
+bfTwoMarginals(:,:,1) = squeeze(sum(probs, 3));
+bfTwoMarginals(:,:,2) = squeeze(sum(probs, 2));
+bfTwoMarginals(:,:,3) = squeeze(sum(probs, 1));
 
-bfMarginal = zeros(nNodes, 1);
+bfMarginals = zeros(nNodes, 1);
 bfm = sum(bf13Marginal, 1);
-bfMarginal(3) = bfm(2);
+bfMarginals(3) = bfm(2);
 bfm = sum(bf12Marginal, 1);
-bfMarginal(2) = bfm(2);
-bfm = sum(bf23Marginal, 1);
-bfMarginal(1) = bfm(2);
+bfMarginals(2) = bfm(2);
+bfm = sum(bf12Marginal, 2);
+bfMarginals(1) = bfm(2);
 
 assertElementsAlmostEqual(sum(bf12Marginal, 2), sum(bf13Marginal, 2));
 assertElementsAlmostEqual(sum(bf13Marginal, 1), sum(bf23Marginal, 1));
@@ -79,3 +80,10 @@ for ne = 1:nEdges
     assertElementsAlmostEqual(oneMarginals(i), checkIMarginal(2));
     assertElementsAlmostEqual(oneMarginals(j), checkJMarginal(2));
 end
+
+disp(['Optimization finished with epsilon = ' num2str(epsilon)]);
+disp(['One-norm of one-marginals: ' num2str(sum(abs(bfMarginals - oneMarginals))) ]);
+disp(['Two-norm of one-marginals: ' num2str(norm(bfMarginals - oneMarginals)) ]);
+disp(['One-norm of two-marginals: ' num2str(sum(abs(bfTwoMarginals(:) - twoMarginals(:)))) ]);
+disp(['Two-norm of two-marginals (lineralized): ' num2str(norm(bfTwoMarginals(:) - twoMarginals(:))) ]);
+
