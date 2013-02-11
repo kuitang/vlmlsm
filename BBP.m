@@ -1,12 +1,12 @@
 function [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
-% Bethe belief propagation (Algorithm 1)
-% [A B] = BBP(theta, W)
+% BBP Bethe belief propagation (Algorithm 1)
+%   [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
 %
-% theta - Unary weights in original graph (Eq 1). COLUMN VECTOR
-% W     - (Sparse) edge weights in original graph
+%   theta - Unary weights in original graph (Eq 1). COLUMN VECTOR
+%   W     - (Sparse) edge weights in original graph
 %
-% A     - Lower bounds
-% B     - Complementary upper bounds
+%   A     - Lower bounds
+%   B     - Complementary upper bounds
 
     nNodes = size(W, 1);
     

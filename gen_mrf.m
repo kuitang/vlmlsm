@@ -1,14 +1,15 @@
-function [ D, W, Vi, Vm ] = gen_mrf( N, maxL, edge_prob, sigFigs )
-% [D, W, Vi, Vm] = gen_mrf(N, L, Nmonge, edge_prob)
-% Generate test-case submodular mrf for MultiLabelSubModular
+function [ D, W, Vi, Vm ] = gen_mrf( N, maxL, edge_prob, figs )
+% gen_mrf Generate test cases for MultiLabelSubModular
+%   [D, W, Vi, Vm] = gen_mrf(N, L, Nmonge, edge_prob)
 %
-% N         - number of nodes
-% maxL      - Maximum number of labels
-% edge_prob - of all N*(N-1)/2 edges, what fraction will appear?
-% sigFigs   - if present, round (generate nice numbers for debug cases)
+%   N         - number of nodes
+%   maxL      - Maximum number of labels
+%   edge_prob - of all N*(N-1)/2 edges, what fraction will appear?
+%   figs      - if present, round to figs places after the decimal
+%               (generate nice numbers for debug cases)
 
     if nargin <= 3
-        sigFigs = 0; % Sentinel
+        figs = 0; % Sentinel
     end
     
     D = cell(N, 1);
@@ -16,8 +17,8 @@ function [ D, W, Vi, Vm ] = gen_mrf( N, maxL, edge_prob, sigFigs )
         % Must have at least two states!
         L = 1 + randi(maxL - 1, 1);
         D{n} = rand(1, L);
-        if sigFigs
-            D{n} = fround(D{n}, sigFigs);
+        if figs
+            D{n} = fround(D{n}, figs);
         end
     end    
     
@@ -51,7 +52,7 @@ function [ D, W, Vi, Vm ] = gen_mrf( N, maxL, edge_prob, sigFigs )
             Li = length(D{ii});
             Lj = length(D{jj});
             
-            Vm{iMonge} = makeMonge(Li, Lj, sigFigs);
+            Vm{iMonge} = makeMonge(Li, Lj, figs);
             Vi(ii,jj) = iMonge;
             iMonge = iMonge + 1;
         end

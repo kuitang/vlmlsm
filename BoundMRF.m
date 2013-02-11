@@ -1,20 +1,20 @@
 function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
-% Construct an MRF for the Bethe bound approximation.
+% boundMRF Construct an MRF for the Bethe bound approximation.
+%   [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
+%   Output an MRF with N nodes and, each having as many labels as
+%   discretization intervals determined by A(n) : (1 - B(n) : gamma.
 %
-% Output an MRF with N nodes and, each having as many labels as
-% discretization intervals determined by A(n) : (1 - B(n) : gamma.
+%   theta - N-vector of unary weights
+%   W     - N x N symmetric sparse matrix of pairwise edge weights (Eq 1)
+%   A     - N-vector of lower bounds
+%   B     - N-vector of complementary upper bounds
+%   alpha - output from BBP
+%   epsilon - tolerance from the true optimum value
 %
-% theta - N-vector of unary weights
-% W     - N x N symmetric sparse matrix of pairwise edge weights (Eq 1)
-% A     - N-vector of lower bounds
-% B     - N-vector of complementary upper bounds
-% alpha - output from BBP
-% epsilon - tolerance from the true optimum value
+%   D, W, Vi, Vm - Arguments to pass to MultiLabelSubModular
+%   qr           - N-cell array of probabilities corresponding the label levels
 %
-% D, W, Vi, Vm - Arguments to pass to MultiLabelSubModular
-% qr           - N-cell array of probabilities corresponding the label levels
-%
-% Equations and numbers taken from the 31 Dec 2012 draft.
+%   Equations and numbers taken from the 31 Dec 2012 draft.
 
     % From the symmetric graph, extract an edge list where iVec(n) < jVec(n)
     nNodes = length(theta);

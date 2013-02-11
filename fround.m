@@ -1,5 +1,6 @@
 function [ y ] = fround( x, d )
-% y = fround(x, d) round x to d significant figures.
+% fround Round x to d figures after the decimal point.
+%   y = fround(x, d) rounds after the decimal point, NOT literally sigfigs.
 
     y = round(10^d .* x) ./ (10^d);
 
