@@ -14,11 +14,7 @@ function [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
     negW = zeros(nNodes, 1);
     
     for j = 1:nNodes
-        is = find(W(:,j));
-        col = W(is,j);
-        
-        colSel = W(W(:,j) ~= 0,j);
-        assert(all(col == colSel));
+        col = W(W(:,j) ~= 0,j);
         posW(j) = sum(col(col > 0));
         negW(j) = -sum(col(col < 0));
     end

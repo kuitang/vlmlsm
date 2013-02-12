@@ -1,4 +1,4 @@
-function [logZ, oneMarginals, twoMarginals] = solveBethe(theta, W, epsilon)
+function [logZ, oneMarginals, twoMarginals, misc] = solveBethe(theta, W, epsilon)
 % solveBethe Solve a binary MRF problem with the Bethe bound approximation
 %
 %   [logZ, oneMarginals, twoMarginals] = solveBethe(theta, W);
@@ -10,14 +10,14 @@ function [logZ, oneMarginals, twoMarginals] = solveBethe(theta, W, epsilon)
 %   
 %   logZ  - Log partition function, which is equal to the negative minimum
 %           Bethe free energy.
-%
 %   oneMarginals - 1 x nNodes vector of P(X_n = 1)
 %   twoMarginas  - 2 x 2 x nEdges matrix of P(X_i, X_j).
+%   misc - structure of diagnostic information
 
     nNodes = length(theta);
     [siVec, sjVec, swVec] = findUT(W);    
     nEdges = length(siVec);        
-    assert(size(W, 1) == nNodes);
+    assert(size(W, 1) == nNodes);    
     
     % Symmetrize W (BBP and boundMRP expect symmetric W)
     W = sparse(vertcat(siVec, sjVec), ...
@@ -27,9 +27,13 @@ function [logZ, oneMarginals, twoMarginals] = solveBethe(theta, W, epsilon)
     
     assert(all(W(:) >= 0), 'W contains negative entries. Not submodular!');    
     
-    [A, B, alpha] = BBP(theta, W);
-    [D, WW, Vi, Vm, qr] = boundMRF(theta, W, A, B, alpha, epsilon);
+    [misc.A, misc.B, alpha] = BBP(theta, W);
+    [D, WW, Vi, Vm, qr] = boundMRF(theta, W, misc.A, misc.B, epsilon);
     [x, e, elMat] = MultiLabelSubModular(D, WW, Vi, Vm);
+    
+    % How big was our problem?
+    elNzRows = (elMat(:,1) ~= 0) & (elMat(:,2) ~= 0);    
+    misc.nDiscreteEdges = sum(elNzRows);
     
     % e is a vector of energies; e(1) is total energy.
     logZ = -e(1);

@@ -10,7 +10,7 @@ function tf = IsMonge(M)
 
 tf = true;
 
-[m n] size(M);
+[m n] = size(M);
 for ii=1:(m-1)
     for kk=1:(n-1)
         tf =  ( M(ii,kk) + M(ii+1,kk+1) <= M(ii, kk+1) + M(ii+1, kk) );

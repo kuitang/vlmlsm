@@ -1,4 +1,4 @@
-function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
+function [ D, newW, Vi, Vm, qr, miscParams ] = boundMRF( theta, W, A, B, epsilon )
 % boundMRF Construct an MRF for the Bethe bound approximation.
 %   [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
 %   Output an MRF with N nodes and, each having as many labels as
@@ -21,54 +21,13 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
     [iVec, jVec, wVec] = findUT(W);    
     nEdges = length(iVec);
     
-    alpha = exp(abs(W)) - 1;
     deg = zeros(nNodes, 1);
     for n = 1:nNodes
         deg(n) = sum(W(:,n) > 0);
         assert(deg(n) > 0, 'All nodes must be connected');
     end
-    
-    % Interval size (gamma) calculation
-    
-    % (Eq 16)
-    eta = min(A, B);
-    % (Theorem 15)
-    aMax = -Inf;
-    bMax = -Inf;
-    for ne = 1:nEdges
-        i = iVec(ne);
-        j = jVec(ne);
         
-        aij = alpha(i,j);
-        ei = eta(i);
-        ej = eta(j);
-        
-        aa = aij*(aij + 1) / (4 * (2*aij + 1) * ei * ej * (1 - ei) * (1 - ej));
-        if aa > aMax
-            aMax = aa;
-        end        
-    end
-    
-    for i = 1:nNodes
-        neighborAlphas = alpha(i,W(:,i) > 0);
-        
-        bInner = 1 - deg(i) + ...
-                 sum( (neighborAlphas + 1).^2 ./ ...
-                      (2*neighborAlphas + 1) );                
-        bb = 1 / (eta(i) * (1 - eta(i))) * bInner;
-        if bb > bMax
-            bMax = bb;
-        end
-    end
-    
-    % (Eq 18)
-    Omega = max(aMax, bMax);
-    %density = nnz(W) / numel(W);
-    densityBound = (max(deg) + 1) / nNodes;
-    eigenBound = nNodes * Omega * sqrt(densityBound);
-    
-    % Interval size
-    intervalSz = sqrt(2*epsilon / (eigenBound * nNodes));
+    intervalSz = getIntervalSz(A, B, W, epsilon);
     
     qr = cell(nNodes, 1);
     for n = 1:nNodes
@@ -113,7 +72,7 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
         vVec(ne) = ne;        
         
         aij = exp(w) - 1;
-        if alpha == 0
+        if aij == 0
             warning('Got a zero weight; skipping. May cause problems.');            
             continue;
         end
