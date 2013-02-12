@@ -18,17 +18,11 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
 
     % From the symmetric graph, extract an edge list where iVec(n) < jVec(n)
     nNodes = length(theta);
-    [iVec, jVec, wVec] = find(W);
-    sel = iVec < jVec;
-    iVec = iVec(sel);
-    jVec = jVec(sel);
-    wVec = wVec(sel);
+    [iVec, jVec, wVec] = findUT(W);    
+    nEdges = length(iVec);
     
     alpha = exp(abs(W)) - 1;
-    
-    nEdges = length(iVec);    
-
-    deg = zeros(nNodes);
+    deg = zeros(nNodes, 1);
     for n = 1:nNodes
         deg(n) = sum(W(:,n) > 0);
         assert(deg(n) > 0, 'All nodes must be connected');
@@ -43,7 +37,7 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
     bMax = -Inf;
     for ne = 1:nEdges
         i = iVec(ne);
-        j = iVec(ne);
+        j = jVec(ne);
         
         aij = alpha(i,j);
         ei = eta(i);
@@ -56,9 +50,9 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
     end
     
     for i = 1:nNodes
-        neighborAlphas = alpha(i,W(i,:) > 0);
+        neighborAlphas = alpha(i,W(:,i) > 0);
         
-        bInner = 1 - deg(ne) + ...
+        bInner = 1 - deg(i) + ...
                  sum( (neighborAlphas + 1).^2 ./ ...
                       (2*neighborAlphas + 1) );                
         bb = 1 / (eta(i) * (1 - eta(i))) * bInner;
@@ -69,8 +63,9 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
     
     % (Eq 18)
     Omega = max(aMax, bMax);
-    density = nnz(W) / numel(W);
-    eigenBound = nNodes * Omega * sqrt(density);
+    %density = nnz(W) / numel(W);
+    densityBound = (max(deg) + 1) / nNodes;
+    eigenBound = nNodes * Omega * sqrt(densityBound);
     
     % Interval size
     intervalSz = sqrt(2*epsilon / (eigenBound * nNodes));
@@ -83,16 +78,22 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
         elseif q(end) ~= (1 - B(n)) % Did not include the endpoint
             q = [q (1 - B(n))];
         end
-        assert(length(q) >= 2, 'not enough intervals!');        
         
+        assert(length(q) >= 2, 'not enough intervals!');                
         qr{n} = q;
     end        
     
     % Unaries: Term two of (Eq 4)
+    %
+    % Reconciling the notation: (Eq 1) writes minus signs in front of the
+    % summations, but MultiLabelSubModular expects positive-signed terms.
+    % For the unary terms, we fold -theta into D.    
     D = cell(nNodes, 1);    
     for n = 1:nNodes        
         D{n} = zeros(size(qr{n}));                        
         
+        % Node n in the constructed graph takes L_n states, where L_n is the
+        % number of discrete levels at which we evaluate the energy.        
         t = theta(n);
         for iq = 1:length(qr{n})
             q = qr{n}(iq);
@@ -101,9 +102,10 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
         end        
     end
     
-    % Pairwise terms (Eq 5)
+    % Pairwise terms (Eq 5)    
     Vm = cell(nEdges, 1);
     vVec = zeros(nEdges, 1);
+    
     for ne = 1:length(iVec)
         i = iVec(ne);
         j = jVec(ne);

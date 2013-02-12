@@ -3,7 +3,7 @@ function [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
 %   [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
 %
 %   theta - Unary weights in original graph (Eq 1). COLUMN VECTOR
-%   W     - (Sparse) edge weights in original graph
+%   W     - (Sparse) symmetric edge weights in original graph
 %
 %   A     - Lower bounds
 %   B     - Complementary upper bounds
@@ -16,6 +16,9 @@ function [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
     for j = 1:nNodes
         is = find(W(:,j));
         col = W(is,j);
+        
+        colSel = W(W(:,j) ~= 0,j);
+        assert(all(col == colSel));
         posW(j) = sum(col(col > 0));
         negW(j) = -sum(col(col < 0));
     end
