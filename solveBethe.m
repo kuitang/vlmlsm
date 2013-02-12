@@ -30,6 +30,7 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBethe(theta, W, epsilon
     [misc.A, misc.B, alpha] = BBP(theta, W);
     [D, WW, Vi, Vm, qr] = boundMRF(theta, W, misc.A, misc.B, epsilon);
     [x, e, elMat] = MultiLabelSubModular(D, WW, Vi, Vm);
+    misc.e = e;
     
     % How big was our problem?
     elNzRows = (elMat(:,1) ~= 0) & (elMat(:,2) ~= 0);    

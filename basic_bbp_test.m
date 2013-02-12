@@ -2,11 +2,12 @@
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 nTrials = 100;
-nNodes = 3;
+nNodes = 6;
 
-totDiffs = zeros(nTrials, 1);
-logZGaps = zeros(nTrials, 1);
-epsilon = 1e-6;
+totDiff = zeros(nTrials, 1);
+trueLogZGaps = zeros(nTrials, 1);
+betheLogZGaps = zeros(nTrials, 1);
+epsilon = 1e-4;
 
 %% Loop it
 for t = 1:nTrials
@@ -17,37 +18,43 @@ for t = 1:nTrials
     W = .5 * (W + W');
 
     %% Run the algorithms
-    [trueLogZ, joint, trueOneMarginals, trueTwoMarginals] = solveJTree(theta, W);   
-    [logZ, oneMarginals, twoMarginals, betheMisc] = solveBethe(theta, W, epsilon);
+    [trueLogZ, joint, trueOneMarg, trueTwoMarg] = solveJTree(theta, W);   
+    %betheLogZ = getBetheLogZ(theta, W, trueOneMarg, trueTwoMarg);
+    [logZ, oneMarg, twoMarg, betheMisc] = solveBethe(theta, W, epsilon);
     
     % The BBP bounds were only approximately calculated anyways
-    boundThresh = 0.002;
-    assert(all(betheMisc.A <= boundThresh + trueOneMarginals & ...
-               trueOneMarginals - boundThresh <= (1 - betheMisc.B)), 'Bound violated!');
-    
-    gap = trueLogZ - logZ;
-    assert(gap > 0,       'Uh oh, Bethe logZ did not lower bound true logZ');
-    if gap > epsilon
-        warning('Uh oh, Bethe logZ is not within epsislon of true logZ');
-    end
+    %boundThresh = 0.002;
+    %assert(all(betheMisc.A <= boundThresh + trueOneMarg & ...
+    %           trueOneMarg - boundThresh <= (1 - betheMisc.B)), 'Bound violated!');
+               
+    %betheMisc.e
+    %betheGap = betheLogZ - logZ;
+    trueGap  = trueLogZ  - logZ;
+    assert(trueGap > 0, 'Approximate Bethe logZ did not lower bound true logZ');
+    %assert(betheGap > epsilon, 'Approximate Bethe logZ not within epsilon of true Bethe logZ');    
 
-
+    oneMargErr = mean(abs(trueOneMarg - oneMarg));
     disp(['Optimization finished with epsilon = ' num2str(epsilon)]);
-    disp(['logZ Gap = ' num2str(gap)]);
-    disp(['Average error of one-marginals: ' num2str(mean(abs(trueOneMarginals - oneMarginals))) ]);
-    %disp(['Two-norm of one-marginals: ' num2str(norm(trueOneMarginals - oneMarginals)) ]);
-    disp(['Average error of two-marginals: ' num2str(mean(abs(trueTwoMarginals(:) - twoMarginals(:)))) ]);
-    %disp(['Two-norm of two-marginals (lineralized): ' num2str(norm(trueTwoMarginals(:) - twoMarginals(:))) ]);
+    disp(['True logZ Gap = ' num2str(trueGap)]);
+    disp(['Average error of one-marginals: ' num2str(oneMargErr) ]);    
+    disp(['Average error of two-marginals: ' num2str(mean(abs(trueTwoMarg(:) - twoMarg(:)))) ]);    
         
     %% Record information
-    logZGaps(t) = gap;
-    totDiffs(t) = sum(abs(trueOneMarginals - oneMarginals));
+    trueLogZGaps(t)  = trueGap;
+    betheLogZGaps(t) = betheGap;
+    totDiffs(t) = oneMargErr;
 end
+
+epsilonTxt = [' for \epsilon = ' num2str(epsilon)];
 
 figure;
 hist(totDiffs);
-title(['Average error of one-marginals for \epsilon = ' num2str(epsilon)]);
+title(['Average error of one-marginals' epsilonTxt]);
 
 figure;
-hist(logZGaps);
-title(['True logZ - Bethe logZ for \epsilon = ' num2str(epsilon)]);
+hist(trueLogZGaps);
+title(['True logZ - Approximate Bethe logZ ' epsilonTxt]);
+
+% figure;
+% hist(betheLogZGaps);
+% title(['Bethe logZ - Approximate Bethe logZ ' epsilonTxt]);
