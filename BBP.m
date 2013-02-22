@@ -20,7 +20,7 @@ function [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
     end
     
     A = sigmoid(theta - negW);
-    B = 1 - sigmoid(theta + posW);        
+    B = 1 - sigmoid(theta + posW);            
     
     % I'M NOT SURE ABOUT THE alpha = exp(w) - 1 vs exp(abs(w))
     alpha = exp(abs(W)) - 1;

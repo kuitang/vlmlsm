@@ -1,10 +1,12 @@
-function [ logZ, joint, oneMarginals, twoMarginals ] = solveJTree(theta, W)
-% solveJTree Find marginals of problem in Eq 1 by libDAI's junction tree
+function [ logZ, joint, oneMarginals, twoMarginals ] = solveDAI(theta, W, method, daiOpts)
+% solveDAI Find marginals of problem in Eq 1 by libDAI's methods
 %   [oneMarginals, twoMarginals, joint, logZ] = solveJTree(theta, W)
 %
 %   theta - unary potentials
 %   W     - (Sparse) pairwise interactions; only upper triangular taken
 %
+%   logZ         - exact (JTREE only) or approximate log partition function
+%   joint        - final joint distribution
 %   oneMarginals - nNodes x 1 vector of P(x_n = 1)
 %   twoMarginals - 2 x 2 x nEdges array of 2x2 matrices where
 %                  M(qi,qj) = P(x_i = qi, x_j = qj).
@@ -35,8 +37,7 @@ function [ logZ, joint, oneMarginals, twoMarginals ] = solveJTree(theta, W)
     end
     
     % Call DAI
-    daiOpts = '[updates=HUGIN,verbose=0]';
-    [logZ,q,md,oneMStruct,twoMStruct,qmap] = dai(psi, 'JTREE', daiOpts);
+    [logZ,q,md,oneMStruct,twoMStruct,qmap] = dai(psi, method, daiOpts);
 
     % Sanitize the results
     joint = q{1}.P;

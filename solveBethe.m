@@ -28,12 +28,14 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBethe(theta, W, epsilon
     assert(all(W(:) >= 0), 'W contains negative entries. Not submodular!');    
     
     [misc.A, misc.B, alpha] = BBP(theta, W);
-    [D, WW, Vi, Vm, qr] = boundMRF(theta, W, misc.A, misc.B, epsilon);
-    [x, e, elMat] = MultiLabelSubModular(D, WW, Vi, Vm);
+    % separate out for easy debugging
+    misc.intervalSz = getIntervalSz(misc.A, misc.B, W, epsilon);
+    [misc.D, WW, Vi, misc.Vm, qr] = boundMRF(theta, W, misc.A, misc.B, misc.intervalSz);
+    [x, e, misc.elMat] = MultiLabelSubModular(misc.D, WW, Vi, misc.Vm);
     misc.e = e;
     
     % How big was our problem?
-    elNzRows = (elMat(:,1) ~= 0) & (elMat(:,2) ~= 0);    
+    elNzRows = (misc.elMat(:,1) ~= 0) & (misc.elMat(:,2) ~= 0);    
     misc.nDiscreteEdges = sum(elNzRows);
     
     % e is a vector of energies; e(1) is total energy.

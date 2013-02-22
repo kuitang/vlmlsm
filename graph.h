@@ -55,7 +55,7 @@
 #define assert(x) mxAssert(x, #x)
 // shai bagon - support graph sizes larger than int size
 typedef mwIndex index_t;
-typedef mwSize  size_t ;
+//typedef mwSize  size_t ;
 #else
 #include <assert.h>
 typedef size_t index_t;

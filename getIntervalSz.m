@@ -45,13 +45,8 @@ function [intervalSz] = getIntervalSz(A, B, W, epsilon);
     
     % (Eq 18)
     Omega = max(aMax, bMax);
-    %density = nnz(W) / numel(W);
-    %densityBound = (max(deg) + 1) / nNodes;
-    %eigenBound = nNodes * Omega * sqrt(densityBound);
-    
-    % Interval size
-    %intervalSz = sqrt(2*epsilon / (eigenBound * nNodes));
-    
+
     % Use the stupider bound
-    intervalSz = sqrt(2*epsilon / (nNodes * Omega * (max(deg) + 1)));
+    density = (nnz(W) + nNodes) / numel(W);
+    intervalSz = sqrt(2*epsilon / (nNodes * Omega * sqrt(density)));
 end

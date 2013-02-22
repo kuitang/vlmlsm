@@ -34,7 +34,7 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     offset = cumsum(nStatesMinusOne); % shift it
     offset = [ 0; offset(1:(end-1)) ];
 
-    
+    tenEps = 10*eps;
     % Each node r nStatesMinusOne(r) nodes in the graph.
     nNodes = sum(nStatesMinusOne); % excluding s/t    
 
@@ -80,7 +80,13 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
             lowNode  = offset(r) + k;
             highNode = offset(r) + k + 1;            
             
-            addEdge(lowNode, highNode, 0, 1e100);            
+            %addEdge(lowNode, highNode, 0, 1e100);
+            iVec(ce) = lowNode;
+            jVec(ce) = highNode;
+            ijVec(ce) = 0;
+            jiVec(ce) = 1e100;
+            ce = ce + 1;
+            
             nZInfEdges = nZInfEdges + 1;
         end
     end       
@@ -120,10 +126,12 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
                 assert(nStates(rr) == size(Vv, 2));
                 
                 qrk = qrk + w * (Vv(k,1) + Vv(k,end) - Vv(k+1,1) - Vv(k+1,end));                
+                fprintf(1, 'qrk for r = %d, k = %d, rr = %d is now %g\n', r, k, rr, qrk);
             end
 
             qrk = qrk / 2;
             qrk = qrk + D{r}(k) - D{r}(k+1);
+            fprintf(1, 'qrk for r = %d, k = %d, FINAL is now %g\n', r, k, qrk);
             
             node = offset(r) + k;            
             addST(node, qrk);            
@@ -156,13 +164,19 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
                     highNode = offset(rr) + kk;                    
                     
                     inside = Vv(k,kk) + Vv(k+1,kk+1) - Vv(k+1,kk) - Vv(k,kk+1);
-                    if abs(inside) <= 10*eps
+                    if abs(inside) <= tenEps
                         inside = 0;
                     end
                     arr = -(w * inside) / 2;                                        
                     assert(arr >= 0);
                     
-                    addEdge(lowNode, highNode, arr, 0);                        
+                    %addEdge(lowNode, highNode, arr, 0);                        
+                    iVec(ce) = lowNode;
+                    jVec(ce) = highNode;
+                    ijVec(ce) = arr;
+                    jiVec(ce) = 0;
+                    ce = ce + 1;
+                    
                     nAlphaEdges = nAlphaEdges + 1;                    
                 end
             end           

@@ -1,4 +1,4 @@
-function [ D, newW, Vi, Vm, qr, miscParams ] = boundMRF( theta, W, A, B, epsilon )
+function [ D, newW, Vi, Vm, qr, miscParams ] = boundMRF( theta, W, A, B, intervalSz )
 % boundMRF Construct an MRF for the Bethe bound approximation.
 %   [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, alpha, epsilon )
 %   Output an MRF with N nodes and, each having as many labels as
@@ -26,9 +26,7 @@ function [ D, newW, Vi, Vm, qr, miscParams ] = boundMRF( theta, W, A, B, epsilon
         deg(n) = sum(W(:,n) > 0);
         assert(deg(n) > 0, 'All nodes must be connected');
     end
-        
-    intervalSz = getIntervalSz(A, B, W, epsilon);
-    
+            
     qr = cell(nNodes, 1);
     for n = 1:nNodes
         q = A(n):intervalSz:(1 - B(n));
