@@ -31,8 +31,6 @@ bool propogateBetheBound(size_t nNodes,
 
     A[j] = sigmoid(theta[j] - negW[j]);
     B[j] = 1 - sigmoid(theta[j] + posW[j]);
-    mexPrintf("%s:%d -- A[%d] = %g, B[%d] = %g\n", __FILE__, __LINE__,
-              j, A[j], j, B[j]);
   }
 
   bool converged = false;
@@ -61,9 +59,6 @@ bool propogateBetheBound(size_t nNodes,
 
       A[j] = 1 / (1 + exp(-theta[j] + negW[j]) / L);
       B[j] = 1 / (1 + exp(theta[j]  + posW[j]) / U);
-
-      mexPrintf("%s:%d BBP Iter %d A[%d] = %g B[%d] = %g\n",
-                __FILE__, __LINE__, iter, j, A[j], j, B[j]);
     }
 
     converged = oneNormConverged(nNodes, A, oldA, thresh) &&
@@ -211,7 +206,7 @@ void makeBetheMinSum(size_t nNodes,
     for (size_t k = 0; k < nStates; k++) {
       double q = intervals.pr[base + k];
       nj(k) = -theta[j] * q + degMinusOne * binaryEntropy(q);
-      mexPrintf("%s:%d -- Node %d[%d] is %g\n", __FILE__, __LINE__, j, k, nj(k));
+      //mexPrintf("%s:%d -- Node %d[%d] is %g\n", __FILE__, __LINE__, j, k, nj(k));
     }
   }
 
@@ -244,8 +239,8 @@ void makeBetheMinSum(size_t nNodes,
             double xi = marginalize(aij, qLo, qHi, marginals);
             potential(iqLo, iqHi) = -w*xi - entropy<4>(marginals);
 
-            mexPrintf("%s:%d -- Potential at %lx entry (%d, %d) is %g\n",
-                      __FILE__, __LINE__, &potential, iqLo, iqHi, potential(iqLo, iqHi));
+            //mexPrintf("%s:%d -- Potential at %lx entry (%d, %d) is %g\n",
+            //          __FILE__, __LINE__, &potential, iqLo, iqHi, potential(iqLo, iqHi));
           }
         }
 

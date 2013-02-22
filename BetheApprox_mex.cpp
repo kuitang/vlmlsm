@@ -58,7 +58,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   double intervalSz = getIntervalSz(nNodes, A, B, W, alpha, epsilon);
 
   // DEBUGGING: COMPARE THE BOUND PROPAGATION (TODO)
-  auto misc = StructMat(1, 1, {"A", "B", "intervalSz", "Vm", "elMat", "e"});
+  auto misc = StructMat(1, 1, {"A", "B", "intervalSz", "Vm", "elMat", "e", "maxFlow"});
 
   Mat<double> Amat(nNodes, 1);
   std::copy(A, A + nNodes, Amat.re);
@@ -86,7 +86,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
 
   m.validate();
 
-  mexPrintf("MINIMIZING -- READ IT NOW!\n");
+  //mexPrintf("MINIMIZING -- READ IT NOW!\n");
 
   std::vector<int> x;
   double energy[3];
@@ -94,6 +94,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   m.minimize(x, energy, maxFlow);
 
   misc[0].set("e", Mat<double>(1, 3, energy));
+  misc[0].set("maxFlow", scalar<double>(maxFlow));
 
   // Output the edge list
   Mat<double> elMat(m.debugEdges.size(), 4);
@@ -118,7 +119,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
     }
   }
 
-  mexPrintf("%s:%d -- oneMarginals success\n", __FILE__, __LINE__);
+  //mexPrintf("%s:%d -- oneMarginals success\n", __FILE__, __LINE__);
 
   // Recover marginals
   mwSize dims[] = {2, 2, nEdges};
@@ -140,6 +141,6 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
       }
     }
   }
-  mexPrintf("%s:%d -- twoMarginals success\n", __FILE__, __LINE__);
+  //mexPrintf("%s:%d -- twoMarginals success\n", __FILE__, __LINE__);
 }
 

@@ -8,6 +8,7 @@ function assertMiscEqual( misc, Tmisc )
     for n = 1:length(misc.Vm)
         assertElementsAlmostEqual(misc.Vm{n}, Tmisc.Vm{n});
     end
+    assertElementsAlmostEqual(misc.maxFlow, Tmisc.maxFlow);
 
 end
 

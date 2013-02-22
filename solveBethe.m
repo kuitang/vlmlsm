@@ -31,7 +31,7 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBethe(theta, W, epsilon
     % separate out for easy debugging
     misc.intervalSz = getIntervalSz(misc.A, misc.B, W, epsilon);
     [misc.D, WW, Vi, misc.Vm, qr] = boundMRF(theta, W, misc.A, misc.B, misc.intervalSz);
-    [x, e, misc.elMat] = MultiLabelSubModular(misc.D, WW, Vi, misc.Vm);
+    [x, e, misc.elMat, misc.maxFlow] = MultiLabelSubModular(misc.D, WW, Vi, misc.Vm);
     misc.e = e;
     
     % How big was our problem?

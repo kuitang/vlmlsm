@@ -7,7 +7,7 @@ nNodes = 4;
 totDiff = zeros(nTrials, 1);
 trueLogZGaps = zeros(nTrials, 1);
 lbpLogZGaps = zeros(nTrials, 1);
-epsilon = 1e-4;
+epsilon = 1e-6;
 
 %% Loop it
 for t = 1:nTrials
@@ -27,8 +27,11 @@ for t = 1:nTrials
     %[logZ, oneMarg, twoMarg, misc] = solveBethe(theta, W, epsilon);
     %intervalSz = getIntervalSz(misc.A, misc.B, W, epsilon);
     opts = struct();
-    [logZ, oneMarginals, twoMarginals, misc] = BetheApprox_mex(theta, W, epsilon, opts);
-    
+    [logZ, oneMarg, twoMarg, misc] = BetheApprox_mex(theta, W, epsilon, opts);
+    assertElementsAlmostEqual(logZ, CHECKlogZ);    
+    assertElementsAlmostEqual(oneMarg, CHECKoneMarg);
+    assertElementsAlmostEqual(twoMarg, CHECKtwoMarg);
+    assertMiscEqual(misc, CHECKmisc);
     
     % The BBP bounds were only approximately calculated anyways
     %boundThresh = 0.002;

@@ -126,12 +126,14 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
                 assert(nStates(rr) == size(Vv, 2));
                 
                 qrk = qrk + w * (Vv(k,1) + Vv(k,end) - Vv(k+1,1) - Vv(k+1,end));                
-                fprintf(1, 'qrk for r = %d, k = %d, rr = %d is now %g\n', r, k, rr, qrk);
+                %fprintf(1, 'qrk for r = %d, k = %d, rr = %d is now %g\n', r, k, rr, qrk);
+                %fprintf(1, 'Components: %g %g %g %g\n', Vv(k,1), Vv(k,end), Vv(k+1,1), Vv(k+1,end));
             end
 
             qrk = qrk / 2;
             qrk = qrk + D{r}(k) - D{r}(k+1);
-            fprintf(1, 'qrk for r = %d, k = %d, FINAL is now %g\n', r, k, qrk);
+            %fprintf(1, 'qrk for r = %d, k = %d, FINAL is now %g\n', r, k, qrk);
+            %fprintf(1, 'Unary term was %g\n', D{r}(k) - D{r}(k+1));
             
             node = offset(r) + k;            
             addST(node, qrk);            
