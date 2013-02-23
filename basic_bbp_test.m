@@ -2,12 +2,12 @@
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 nTrials = 100;
-nNodes = 4;
+nNodes = 6;
 
 totDiff = zeros(nTrials, 1);
 trueLogZGaps = zeros(nTrials, 1);
 lbpLogZGaps = zeros(nTrials, 1);
-epsilon = 1e-6;
+epsilon = 1e-4;
 
 %% Loop it
 for t = 1:nTrials

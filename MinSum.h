@@ -11,9 +11,10 @@ struct MinSum;
 
 // Assumes that the potential data is stored immediately after the node.
 struct alignas(double) Node {
-  uint64_t nStates;
+  // Used a signed type to detection < subtraction fail.
+  int64_t nStates;
 
-  Node(int nStates_) : nStates(nStates_) { }
+  Node(int64_t nStates_) : nStates(nStates_) { }
 
   // Node must live exactly where it was allocated, or bad things will happen.
   // (We will touch memory that we haven't allocated.)
@@ -32,8 +33,8 @@ struct alignas(double) Node {
 static_assert(sizeof(Node) % sizeof(double) == 0, "Node cannot be stored in double array");
 
 struct alignas(double) Potential {
-  uint64_t nLo;
-  uint64_t nHi;
+  int64_t nLo;
+  int64_t nHi;
 
   Potential(int nLo_, int nHi_) : nLo(nLo_), nHi(nHi_) { }
 
@@ -42,10 +43,10 @@ struct alignas(double) Potential {
 
   // Column major
   double &operator()(int lo, int hi) {
-    mxAssert(lo < nLo && hi < nHi, "Potential operator() out of bounds");
+    mexPrintf("%s:%d -- Potential %lx (nLo = %d, nHi = %d), at (%d, %d)\n", __FILE__, __LINE__, this, nLo, nHi, lo, hi);
+    mxAssert(lo < nLo && hi < nHi, "Potential::operator() out of bounds");
     double *p = reinterpret_cast<double *>(this);
     p += sizeof(Potential) / sizeof(double) + nLo*hi + lo;
-    //mexPrintf("%s:%d -- Potential %lx at (%d, %d) is %g at %lx\n", __FILE__, __LINE__, this, lo, hi, *p, p);
     return *p;
   }
 };
@@ -148,8 +149,9 @@ struct MinSum {
     potentials.reserve(nEdges);
   }
 
-  void addNode(size_t n, int nStates_) {
+  Node &addNode(size_t n, int nStates_) {
     nodes[n] = new (alloc<Node>(nStates_)) Node(nStates_);
+    return *(nodes[n]);
   }
 
   // Potentials are always indexed lo on the rows, hi on the columns.
@@ -167,6 +169,7 @@ struct MinSum {
 
   // should be fast because this happens a lot
   Potential &addPotential(int nLo, int nHi) {
+    mxAssert(nLo > 0 && nHi > 0, "Potential was allocated without entries!");
     // Allocate from our memory stash
     Potential *p = new (alloc<Potential>(nLo * nHi)) Potential(nLo, nHi);
     potentials.push_back(p);
@@ -179,6 +182,7 @@ struct MinSum {
     NOT_SYMMETRIC_W,
     NOT_TRANSPOSED_POTENTIAL,
     SELF_LOOP,
+    INSUFFICIENT_STATES,
   };
 
   bool isSubModular(Potential *p);

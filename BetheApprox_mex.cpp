@@ -58,16 +58,16 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   double intervalSz = getIntervalSz(nNodes, A, B, W, alpha, epsilon);
 
   // DEBUGGING: COMPARE THE BOUND PROPAGATION (TODO)
-  auto misc = StructMat(1, 1, {"A", "B", "intervalSz", "Vm", "elMat", "e", "maxFlow"});
+  auto misc = StructMat(1, 1, {"A", "B", "intervalSz", "Vm", "elMat", "e", "maxFlow", "x"});
 
   Mat<double> Amat(nNodes, 1);
   std::copy(A, A + nNodes, Amat.re);
-  misc[0].set("A", Amat);
+  misc.set("A", Amat);
 
   auto Bmat = Mat<double>(nNodes, 1);
   std::copy(B, B + nNodes, Bmat.re);
-  misc[0].set("B", Bmat);
-  misc[0].setS("intervalSz", intervalSz);
+  misc.set("B", Bmat);
+  misc.setS("intervalSz", intervalSz);
 
   pOut[oMisc] = misc;
 
@@ -82,9 +82,12 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
     std::copy(&p(0,0), &p(0,0) + p.nLo * p.nHi, potMat.re);
     Vm.set(i, static_cast<mxArray *>(potMat));
   }
-  misc[0].set("Vm", Vm);
+  misc.set("Vm", Vm);
 
-  m.validate();
+  auto fc = m.validate();
+  if (fc != MinSum::FailCode::SUCCESS) {
+    mexPrintf("%s:%d Fail code %d\n", __FILE__, __LINE__, fc);
+  }
 
   //mexPrintf("MINIMIZING -- READ IT NOW!\n");
 
@@ -93,8 +96,9 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   double maxFlow;
   m.minimize(x, energy, maxFlow);
 
-  misc[0].set("e", Mat<double>(1, 3, energy));
-  misc[0].set("maxFlow", scalar<double>(maxFlow));
+  misc.set("e", Mat<double>(1, 3, energy));
+  misc.set("maxFlow", scalar<double>(maxFlow));
+  misc.set("x", Mat<int>(x, /*colMat = */ false));
 
   // Output the edge list
   Mat<double> elMat(m.debugEdges.size(), 4);
@@ -105,7 +109,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
     elMat(i,2) = de.fw;
     elMat(i,3) = de.rw;
   }
-  misc[0].set("elMat", elMat);
+  misc.set("elMat", elMat);
 
   pOut[oLogZ] = scalar<double>(-energy[0]);
 

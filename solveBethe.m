@@ -31,20 +31,19 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBethe(theta, W, epsilon
     % separate out for easy debugging
     misc.intervalSz = getIntervalSz(misc.A, misc.B, W, epsilon);
     [misc.D, WW, Vi, misc.Vm, qr] = boundMRF(theta, W, misc.A, misc.B, misc.intervalSz);
-    [x, e, misc.elMat, misc.maxFlow] = MultiLabelSubModular(misc.D, WW, Vi, misc.Vm);
-    misc.e = e;
+    [misc.x, misc.e, misc.elMat, misc.maxFlow] = MultiLabelSubModular(misc.D, WW, Vi, misc.Vm);
     
     % How big was our problem?
     elNzRows = (misc.elMat(:,1) ~= 0) & (misc.elMat(:,2) ~= 0);    
     misc.nDiscreteEdges = sum(elNzRows);
     
     % e is a vector of energies; e(1) is total energy.
-    logZ = -e(1);
+    logZ = -misc.e(1);
 
     % Translate levels back to marginals
     oneMarginals = zeros(nNodes, 1);
     for n = 1:nNodes
-        oneMarginals(n) = qr{n}(x(n));
+        oneMarginals(n) = qr{n}(misc.x(n));
     end
   
     twoMarginals = zeros(2, 2, nEdges);

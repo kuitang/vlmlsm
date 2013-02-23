@@ -198,8 +198,8 @@ void makeBetheMinSum(size_t nNodes,
   for (size_t j = 0; j < nNodes; j++) {
     size_t base = intervals.jc[j];
     int nStates = intervals.jc[j+1] - base;
-    m.addNode(j, nStates);
-    Node &nj = *m.nodes[j];
+    mxAssert(nStates >= 2, "states did not exceed two!");
+    Node &nj = m.addNode(j, nStates);
 
     int degMinusOne = degree(W, j) - 1;
 
@@ -213,12 +213,18 @@ void makeBetheMinSum(size_t nNodes,
   // Pairwise: (Eq 5)
   for (size_t hi = 0; hi < nNodes; hi++) {
     size_t nHiStates = m.nodes[hi]->nStates;
+    if (nHiStates < 0) {
+      mexErrMsgTxt("nHiStates cannot be negative");
+    }
 
     for (size_t nodeIdx = W.jc[hi]; nodeIdx < W.jc[hi+1]; nodeIdx++) {
       size_t lo = W.ir[nodeIdx];
 
       if (hi > lo) {
         size_t nLoStates = m.nodes[lo]->nStates;
+        if (nLoStates < 0) {
+          mexErrMsgTxt("nLoStates cannot be negative");
+        }
 
         // Only look at the upper triangular (minus diagonal)
         double w = W.pr[nodeIdx];
@@ -227,6 +233,12 @@ void makeBetheMinSum(size_t nNodes,
         assert(aij != 0);
 
         // Right now, this is already zero-allocated.
+        if (nLoStates < 0) {
+          mexErrMsgTxt("nLoStates was negative before addPotential");
+        }
+        if (nHiStates < 0) {
+          mexErrMsgTxt("nHiStates was negative before addPotential");
+        }
         Potential &potential = m.addPotential(nLoStates, nHiStates);
         m.addEdge(lo, hi, 1.0, &potential);
 

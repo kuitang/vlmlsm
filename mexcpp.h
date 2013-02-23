@@ -148,11 +148,27 @@ namespace mexcpp {
       re = static_cast<T *>(mxGetData(pm));
     }
 
-    // Construct from an existing array (copy to MATLAB's memory)
+    // Construct from existing array (copy to MATLAB's memory)
     Mat(size_t rows, size_t cols, T *p) : BaseMat(rows, cols) {
       pm = mxCreateNumericMatrix(rows, cols, ty<T>(), mxREAL);
       re = static_cast<T *>(mxGetData(pm));
       std::copy(p, p + rows*cols, re);
+    }
+
+    // Construct from existing std::vector (copy to MATLAB's memory)
+    Mat(const std::vector<T> v, bool colMat=true) : BaseMat(0, 0) {
+      length = v.size();
+      if (colMat) {
+        M = length;
+        N = 1;
+      } else {
+        M = 1;
+        N = length;
+      }
+
+      pm = mxCreateNumericMatrix(M, N, ty<T>(), mxREAL);
+      re = static_cast<T *>(mxGetData(pm));
+      std::copy(v.data(), v.data() + v.size(), re);
     }
 
 
@@ -267,6 +283,24 @@ namespace mexcpp {
 
     Entry operator[](size_t ind) { return Entry(pm, ind); }
     Entry operator()(size_t r, size_t c) { return (*this)[(sub2ind(r,c))]; }
+
+    // Syntactic sugar; access the first element.
+    // Deals with the common use case with a 1x1 "matrix".
+    template <class T> void set(const char *fn, T x) {
+      (*this)[0].set(fn, x);
+    }
+
+    template <class S> void setS(const char *fn, S x) {
+      (*this)[0].setS(fn, x);
+    }
+
+    template <class T> void set(mwIndex fi, T x) {
+      (*this)[0].set(fi, x);
+    }
+
+    template <class S> void setS(mwIndex fi, S x) {
+      (*this)[0].set(fi, x);
+    }
   };
 
   // Compressed sparse column sparse matrix (MATLAB's format)

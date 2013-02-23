@@ -198,7 +198,7 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     % Let k' be the true optimal label. Then node (r, k) is labelled 1 (SINK)
     % if k >= k' and 0 otherwise. We assign k' as the first SINK label. See
     % the diagram on page 8.    
-    x = zeros(1, N);
+    x = int32(zeros(1, N));
     for r = 1:N
         x(r) = nStates(r);        
         

@@ -110,6 +110,7 @@ if nargout > 1 % compute energy as well
     N = length(D);    
         
     % Pairwise term
+    e = zeros(1, 3);
     e(3) = 0;
     % Pairwise term
     for r = 1:N  
