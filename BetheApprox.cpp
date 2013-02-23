@@ -109,6 +109,8 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
   for (size_t n = 0; n < nNodes; n++) {
     m.jc[n] = ind;
     size_t k = 0;
+    mxAssert(A[n] < 1 - B[n], "bounds failed.");
+
     for (double q = A[n]; q < 1 - B[n]; q += intervalSz) {
       m.ir[ind] = k;
       m.pr[ind] = q;
@@ -120,7 +122,6 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
     m.ir[ind] = k;
     m.pr[ind] = 1 - B[n];
     ind++;
-    k++;
   }
   // Last column; one-past-end
   // We don't need to add 1, because the ind++ above means that at the last
@@ -196,15 +197,14 @@ void makeBetheMinSum(size_t nNodes,
 
   // Unaries: Term two of (Eq 4)
   for (size_t j = 0; j < nNodes; j++) {
-    size_t base = intervals.jc[j];
-    int nStates = intervals.jc[j+1] - base;
+    int nStates = intervals.jc[j+1] - intervals.jc[j];
     mxAssert(nStates >= 2, "states did not exceed two!");
     Node &nj = m.addNode(j, nStates);
 
     int degMinusOne = degree(W, j) - 1;
 
     for (size_t k = 0; k < nStates; k++) {
-      double q = intervals.pr[base + k];
+      double q = intervals.pr[intervals.jc[j] + k];
       nj(k) = -theta[j] * q + degMinusOne * binaryEntropy(q);
       //mexPrintf("%s:%d -- Node %d[%d] is %g\n", __FILE__, __LINE__, j, k, nj(k));
     }
@@ -212,16 +212,16 @@ void makeBetheMinSum(size_t nNodes,
 
   // Pairwise: (Eq 5)
   for (size_t hi = 0; hi < nNodes; hi++) {
-    size_t nHiStates = m.nodes[hi]->nStates;
+    int nHiStates = m.nodes[hi]->nStates;
     if (nHiStates < 0) {
       mexErrMsgTxt("nHiStates cannot be negative");
     }
 
     for (size_t nodeIdx = W.jc[hi]; nodeIdx < W.jc[hi+1]; nodeIdx++) {
-      size_t lo = W.ir[nodeIdx];
+      int lo = W.ir[nodeIdx];
 
       if (hi > lo) {
-        size_t nLoStates = m.nodes[lo]->nStates;
+        int nLoStates = m.nodes[lo]->nStates;
         if (nLoStates < 0) {
           mexErrMsgTxt("nLoStates cannot be negative");
         }

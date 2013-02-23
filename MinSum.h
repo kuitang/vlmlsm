@@ -9,45 +9,47 @@
 
 struct MinSum;
 
-// Assumes that the potential data is stored immediately after the node.
-struct alignas(double) Node {
+// Make really dumb to avoid memory trouble
+//
+// TODO: Replace with placement new
+struct Node {
   // Used a signed type to detection < subtraction fail.
   int64_t nStates;
+  double *vals;
 
-  Node(int64_t nStates_) : nStates(nStates_) { }
+  Node(int64_t nStates_) : nStates(nStates_) {
+    vals = new double[nStates_];
+  }
 
-  // Node must live exactly where it was allocated, or bad things will happen.
-  // (We will touch memory that we haven't allocated.)
   Node(const Node &other) = delete;
   Node &operator=(const Node &other) = delete;
 
   double &operator()(int i) {
-    mxAssert(i < nStates, "Node operator() out of bounds");
-    double *p = reinterpret_cast<double *>(this);
-    p += sizeof(Node) / sizeof(double) + i; // units of doubles
-    //mexPrintf("%s:%d -- Node %lx at %d is %g at %lx\n", __FILE__, __LINE__, this, i, *p, p);
-    return *p;
+    mxAssert(i >= 0 && i < nStates, "Node operator() out of bounds");
+    return vals[i];
   }
+
+  ~Node() { delete vals; }
 };
 
 static_assert(sizeof(Node) % sizeof(double) == 0, "Node cannot be stored in double array");
 
-struct alignas(double) Potential {
+struct Potential {
   int64_t nLo;
   int64_t nHi;
 
-  Potential(int nLo_, int nHi_) : nLo(nLo_), nHi(nHi_) { }
+  double *vals;
+
+  Potential(int nLo_, int nHi_) : nLo(nLo_), nHi(nHi_) {
+    vals = new double[nLo * nHi];
+  }
 
   Potential(const Potential &other) = delete;
   Potential &operator=(const Potential &other) = delete;
 
   // Column major
   double &operator()(int lo, int hi) {
-    mexPrintf("%s:%d -- Potential %lx (nLo = %d, nHi = %d), at (%d, %d)\n", __FILE__, __LINE__, this, nLo, nHi, lo, hi);
-    mxAssert(lo < nLo && hi < nHi, "Potential::operator() out of bounds");
-    double *p = reinterpret_cast<double *>(this);
-    p += sizeof(Potential) / sizeof(double) + nLo*hi + lo;
-    return *p;
+    return vals[nLo*hi + lo];
   }
 };
 
@@ -150,7 +152,8 @@ struct MinSum {
   }
 
   Node &addNode(size_t n, int nStates_) {
-    nodes[n] = new (alloc<Node>(nStates_)) Node(nStates_);
+    //nodes[n] = new (alloc<Node>(nStates_)) Node(nStates_);
+    nodes[n] = new Node(nStates_);
     return *(nodes[n]);
   }
 
@@ -171,7 +174,8 @@ struct MinSum {
   Potential &addPotential(int nLo, int nHi) {
     mxAssert(nLo > 0 && nHi > 0, "Potential was allocated without entries!");
     // Allocate from our memory stash
-    Potential *p = new (alloc<Potential>(nLo * nHi)) Potential(nLo, nHi);
+    //Potential *p = new (alloc<Potential>(nLo * nHi)) Potential(nLo, nHi);
+    Potential *p = new Potential(nLo, nHi);
     potentials.push_back(p);
     return *p;
   }

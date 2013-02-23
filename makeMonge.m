@@ -15,7 +15,7 @@ function V = makeMonge(N, M, figs)
         seq1 = cumsum(rand(1, maxL));
         seq2 = cumsum(rand(1, maxL));
         V = abs(bsxfun(@minus, seq1, seq2'));
-        if figs
+        if nargin > 2 && figs
             V = fround(V, figs);
         end
         if IsMonge(V)            

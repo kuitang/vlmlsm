@@ -16,8 +16,10 @@ bool MinSum::isSubModular(Potential *p) {
   char errMsg[1000];
   for (int lo = 0; lo < q.nLo - 1; lo++) {
     for (int hi = 0; hi < q.nHi - 1; hi++) {
-      if (q(lo,hi) + q(lo+1, hi+1) > q(lo, hi+1) + q(lo+1, hi)) {
-        snprintf(errMsg, 1000, "isSubModular: GEQ Potential %p entry (%d,%d) failed (%g + %g > %g + %g)", p, lo, hi, q(lo,hi), q(lo+1,hi+1), q(lo,hi+1), q(lo+1,hi));
+      double diff = q(lo,hi) + q(lo+1, hi+1) - q(lo, hi+1) - q(lo+1, hi);
+      if (diff - 5 * TEN_EPS > 0) {
+        snprintf(errMsg, 1000, "isSubModular: GEQ Potential %p entry (%d,%d) failed (%g + %g > %g + %g) (diff = %g)\n", p, lo, hi, q(lo,hi), q(lo+1,hi+1), q(lo,hi+1), q(lo+1,hi), diff);
+
         errFunc(errMsg);
         return false;
       }
@@ -60,14 +62,14 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
   for (int r = 1; r < nNodes; r++) {
     offsets.push_back(offsets[r - 1] + nodes[r - 1]->nStates - 1);
   }
-  assert(offsets.size() == nNodes);
+  mxAssert(offsets.size() == nNodes, "Offsets and nodes epic fail");
 
   int nBKNodes = offsets.back() + nodes.back()->nStates - 1;
 
-  for (int r = 0; r < nNodes; r++) {
-    mexPrintf("%s:%d -- Node %d@%p had %d represented states. Offset is %d\n",
-              __FILE__, __LINE__, r, nodes[r], nodes[r]->nStates - 1, offsets[r]);
-  }
+//  for (int r = 0; r < nNodes; r++) {
+//    mexPrintf("%s:%d -- Node %d@%p had %d represented states. Offset is %d\n",
+//              __FILE__, __LINE__, r, nodes[r], nodes[r]->nStates - 1, offsets[r]);
+//  }
 
   // upper bound on number of neighbors:
   // one edge per node for s/t (but those don't count)
@@ -86,6 +88,7 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
 
   // Make our graph
   dGraph *gp = new dGraph(nBKNodes, nBKneighbors, errFunc);
+  mexPrintf("%s:%d -- nBKNeighbors = %d\n", __FILE__, __LINE__, nBKneighbors);
   mexPrintf("%s:%d -- nBKNodes = %d\n", __FILE__, __LINE__, nBKNodes);
 
   // Add nodes
@@ -95,11 +98,11 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
   int loNode, hiNode;
   for (int r = 0; r < nodes.size(); r++) {
     Node *currNode = nodes[r];
-    mexPrintf("%s:%d -- r = %d, currNode->nStates = %d\n", __FILE__, __LINE__, r, currNode->nStates);
+    //mexPrintf("%s:%d -- r = %d, currNode->nStates = %d\n", __FILE__, __LINE__, r, currNode->nStates);
 
     for (int k = 0; k < currNode->nStates - 2; k++) {
-      mexPrintf("%s:%d -- r = %d, k = %d, currNode->nStates = %d\n",
-                __FILE__, __LINE__, r, k, currNode->nStates);
+      //mexPrintf("%s:%d -- r = %d, k = %d, currNode->nStates = %d\n",
+      //          __FILE__, __LINE__, r, k, currNode->nStates);
       loNode = offsets[r] + k;
       hiNode = offsets[r] + k + 1;
 
@@ -108,8 +111,8 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
       gp->add_edge(loNode, hiNode, 0.0, INF);
       debugEdges.emplace_back(loNode + 1, hiNode + 1, 0.0, INF);
 
-      mexPrintf("%s:%d -- EDGE %d -> %d FW = %g RW = %g\n",
-                __FILE__, __LINE__, loNode, hiNode, 0.0, INF);
+      //mexPrintf("%s:%d -- EDGE %d -> %d FW = %g RW = %g\n",
+      //          __FILE__, __LINE__, loNode, hiNode, 0.0, INF);
     }
   }
 
@@ -124,27 +127,27 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
       for (const Edge &e : neighbors[r]) {
         int end = nodes[e.dst]->nStates - 1;
         qrk += e.w * (e.p(k,0) + e.p(k,end) - e.p(k+1,0) - e.p(k+1,end));
-        mexPrintf("%s:%d qrk for r = %d, k = %d, rr = %d is now %g\n",
-                  __FILE__, __LINE__, r, k, e.dst, qrk);
-        mexPrintf("%s:%d Components: %g %g %g %g\n", __FILE__, __LINE__, e.p(k,1), e.p(k,end), e.p(k+1,1), e.p(k+1,end));
+        //mexPrintf("%s:%d qrk for r = %d, k = %d, rr = %d is now %g\n",
+        //          __FILE__, __LINE__, r, k, e.dst, qrk);
+        //mexPrintf("%s:%d Components: %g %g %g %g\n", __FILE__, __LINE__, e.p(k,1), e.p(k,end), e.p(k+1,1), e.p(k+1,end));
       }
 
       qrk = qrk / 2.0;
       qrk = qrk + nr(k) - nr(k+1);
-      mexPrintf("%s:%d qrk for r = %d, k = %d, FINAL is now %g\n", __FILE__, __LINE__, r, k, qrk);
-      mexPrintf("%s:%d Unary term was %g\n", __FILE__, __LINE__, nr(k) - nr(k+1));
+      //mexPrintf("%s:%d qrk for r = %d, k = %d, FINAL is now %g\n", __FILE__, __LINE__, r, k, qrk);
+      //mexPrintf("%s:%d Unary term was %g\n", __FILE__, __LINE__, nr(k) - nr(k+1));
       int node = offsets[r] + k;
 
       if (qrk > 0) {
         gp->add_tweights(node, qrk, 0);
         debugEdges.emplace_back(-1, node + 1, qrk, 0);
-        mexPrintf("%s:%d -- S EDGE s -> %d W = %g\n",
-                  __FILE__, __LINE__, node, qrk);
+        //mexPrintf("%s:%d -- S EDGE s -> %d W = %g\n",
+        //          __FILE__, __LINE__, node, qrk);
       } else {
         gp->add_tweights(node, 0, -qrk);
         debugEdges.emplace_back(node + 1, -2, -qrk, 0);
-        mexPrintf("%s:%d -- T EDGE %d -> t W = %g\n",
-                  __FILE__, __LINE__, node, -qrk);
+        //mexPrintf("%s:%d -- T EDGE %d -> t W = %g\n",
+        //          __FILE__, __LINE__, node, -qrk);
       }
     }
   }
@@ -161,28 +164,31 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
 
         for (int kk = 0; kk < nodes[rr]->nStates - 1; kk++) {
           rrNode = offsets[rr] + kk;
-          mexPrintf("%s:%d -- r = %d, rr = %d, k = %d, kk = %d, nodes[r]->nStates = %d, nodes[rr]->nStates = %d", __FILE__, __LINE__, r, rr, k, kk, nodes[r]->nStates, nodes[rr]->nStates);
+          //mexPrintf("%s:%d -- r = %d, rr = %d, k = %d, kk = %d, nodes[r]->nStates = %d, nodes[rr]->nStates = %d", __FILE__, __LINE__, r, rr, k, kk, nodes[r]->nStates, nodes[rr]->nStates);
           inside = e.p(k,kk) + e.p(k+1,kk+1) - e.p(k+1,kk) - e.p(k,kk+1);
 
           // We may have small perturbations
-          if (fabs(inside) < TEN_EPS) {
+          if (fabs(inside) < 10 * TEN_EPS) {
             inside = 0.0;
           }
 
           arr = -(e.w * inside) / 2.0;
           // Will be true if problem was submodular.
-          assert(arr >= 0);
+          if (arr < 0) {
+            mexPrintf("%s:%d -- arr = %g\n", __FILE__, __LINE__, arr);
+          }
+          mxAssert(arr >= 0, "not submodular!");
 
           gp->add_edge(rNode, rrNode, arr, 0.0);
           debugEdges.emplace_back(rNode + 1, rrNode + 1, arr, 0.0);
-          mexPrintf("%s:%d -- EDGE %d -> %d FW = %g RW = %g\n",
-                    __FILE__, __LINE__, rNode, rrNode, arr, 0.0);
+          //mexPrintf("%s:%d -- EDGE %d -> %d FW = %g RW = %g\n",
+          //          __FILE__, __LINE__, rNode, rrNode, arr, 0.0);
         }
       }
     }
   }
 
-  mexPrintf("%s:%d -- Before calling gp->maxflow()\n", __FILE__, __LINE__);
+  //mexPrintf("%s:%d -- Before calling gp->maxflow()\n", __FILE__, __LINE__);
   maxFlow = gp->maxflow();
 
   std::vector<bool> cut(nBKNodes);
@@ -191,7 +197,7 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
   }
 
 
-  mexPrintf("%s:%d -- Before assigning cut\n", __FILE__, __LINE__);
+  //mexPrintf("%s:%d -- Before assigning cut\n", __FILE__, __LINE__);
   x.resize(nNodes);
   for (int r = 0; r < nNodes; r++) {
     int nst = nodes[r]->nStates;

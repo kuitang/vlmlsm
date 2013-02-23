@@ -2,45 +2,61 @@
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 nTrials = 100;
-nNodes = 6;
+nNodes = 12;
+
+runJT = false;
+checkMatlab = false;
 
 totDiff = zeros(nTrials, 1);
 trueLogZGaps = zeros(nTrials, 1);
 lbpLogZGaps = zeros(nTrials, 1);
-epsilon = 1e-4;
+epsilon = 1e-3;
 
 %% Loop it
 for t = 1:nTrials
     %% Set up the problem    
-    theta = -2*rand(nNodes, 1);    
-    W = rand(nNodes, nNodes);
-    W(1:nNodes+1:nNodes*nNodes) = 0;   
+    theta = -nNodes/2*rand(nNodes, 1);
+    W = makeMonge(nNodes, nNodes);    
+    W(1:nNodes+1:nNodes*nNodes) = 0; 
     W = .5 * (W + W');
+    W = W ./ max(W(:));    
     
-    W = sparse(W);
+    % Scale    
+    W = sparse(W);    
 
     %% Run the algorithms
-    [trueLogZ, ~, trueOneMarg, trueTwoMarg] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');   
-    [lbpLogZ, ~, lbpOneMarg, lbpTwoMarg]    = solveDAI(theta, W, 'BP', '[tol=1e-9,logdomain=0,updates=SEQRND]');    
-    
-    [CHECKlogZ, CHECKoneMarg, CHECKtwoMarg, CHECKmisc] = solveBethe(theta, W, epsilon);
-    %[logZ, oneMarg, twoMarg, misc] = solveBethe(theta, W, epsilon);
-    %intervalSz = getIntervalSz(misc.A, misc.B, W, epsilon);
     opts = struct();
-    [logZ, oneMarg, twoMarg, misc] = BetheApprox_mex(theta, W, epsilon, opts);
-    assertElementsAlmostEqual(logZ, CHECKlogZ);    
-    assertElementsAlmostEqual(oneMarg, CHECKoneMarg);
-    assertElementsAlmostEqual(twoMarg, CHECKtwoMarg);
-    assertMiscEqual(misc, CHECKmisc);
+
+    [logZ, oneMarg, twoMarg, misc] = BetheApprox_mex(theta, W, epsilon, opts);    
+    
+    if runJT
+        [trueLogZ, ~, trueOneMarg, trueTwoMarg] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');   
+    end
+    
+    [lbpLogZ, ~, lbpOneMarg, lbpTwoMarg]    = solveDAI(theta, W, 'BP', '[tol=1e-6,logdomain=0,updates=SEQRND]');    
+    
+    if checkMatlab
+        [CHECKlogZ, CHECKoneMarg, CHECKtwoMarg, CHECKmisc] = solveBethe(theta, W, epsilon);
+        [logZ, oneMarg, twoMarg, misc] = solveBethe(theta, W, epsilon);
+        intervalSz = getIntervalSz(misc.A, misc.B, W, epsilon);
+
+        assertElementsAlmostEqual(logZ, CHECKlogZ);    
+        assertElementsAlmostEqual(oneMarg, CHECKoneMarg);
+        assertElementsAlmostEqual(twoMarg, CHECKtwoMarg);
+        assertMiscEqual(misc, CHECKmisc);
+    end
     
     % The BBP bounds were only approximately calculated anyways
     %boundThresh = 0.002;
     %assert(all(betheMisc.A <= boundThresh + trueOneMarg & ...
     %           trueOneMarg - boundThresh <= (1 - betheMisc.B)), 'Bound violated!');
-               
-    %betheMisc.e    
-    trueGap = trueLogZ - logZ;
-    assert(trueGap > 0, 'Approximate Bethe logZ did not lower bound true logZ');
+                   
+    
+    if runJT
+        trueGap = trueLogZ - logZ;
+        assert(trueGap > 0, 'Approximate Bethe logZ did not lower bound true logZ');
+    end
+    
     lbpGap  = lbpLogZ - logZ;
     if lbpGap < 0
         warning('LBP logZ - Approximate Bethe logZ gap was negative');
@@ -54,17 +70,19 @@ for t = 1:nTrials
         save(fn);
     end          
 
-    oneMargErr = mean(abs(trueOneMarg - oneMarg));
     disp(['Optimization finished with epsilon = ' num2str(epsilon)]);
-    disp(['True logZ Gap = ' num2str(trueGap)]);
-    disp(['LBP logZ Gap = ' num2str(lbpGap)]);
-    disp(['Average error of one-marginals: ' num2str(oneMargErr) ]);    
-    disp(['Average error of two-marginals: ' num2str(mean(abs(trueTwoMarg(:) - twoMarg(:)))) ]);    
-        
-    %% Record information
-    trueLogZGaps(t)  = trueGap;
+    
+    if runJT
+        disp(['True logZ Gap = ' num2str(trueGap)]);
+        disp(['Average error of one-marginals: ' num2str(oneMargErr) ]);
+        disp(['Average error of two-marginals: ' num2str(mean(abs(trueTwoMarg(:) - twoMarg(:)))) ]);
+        oneMargErr = mean(abs(trueOneMarg - oneMarg));
+        trueLogZGaps(t)  = trueGap;
+        totDiff(t) = oneMargErr;        
+    end    
+    
+    disp(['LBP logZ Gap = ' num2str(lbpGap)]);               
     lbpLogZGaps(t) = lbpGap;
-    totDiff(t) = oneMargErr;
 end
 
 epsilonTxt = [' for \epsilon = ' num2str(epsilon)];
