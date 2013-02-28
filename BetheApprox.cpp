@@ -212,7 +212,7 @@ void makeBetheMinSum(size_t nNodes,
 
   // Pairwise: (Eq 5)
   for (size_t hi = 0; hi < nNodes; hi++) {
-    int nHiStates = m.nodes[hi]->nStates;
+    int nHiStates = m.nodes[hi].nStates;
     if (nHiStates < 0) {
       mexErrMsgTxt("nHiStates cannot be negative");
     }
@@ -221,7 +221,7 @@ void makeBetheMinSum(size_t nNodes,
       int lo = W.ir[nodeIdx];
 
       if (hi > lo) {
-        int nLoStates = m.nodes[lo]->nStates;
+        int nLoStates = m.nodes[lo].nStates;
         if (nLoStates < 0) {
           mexErrMsgTxt("nLoStates cannot be negative");
         }

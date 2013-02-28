@@ -10,45 +10,40 @@
 struct MinSum;
 
 // Make really dumb to avoid memory trouble
-//
-// TODO: Replace with placement new
 struct Node {
   // Used a signed type to detection < subtraction fail.
-  int64_t nStates;
+  int nStates;
   double *vals;
 
-  Node(int64_t nStates_) : nStates(nStates_) {
-    vals = new double[nStates_];
-  }
+  Node() : nStates(0), vals(nullptr) { }
+  Node(int64_t nStates_, double *vals_) : nStates(nStates_), vals(vals_) { }
 
   Node(const Node &other) = delete;
   Node &operator=(const Node &other) = delete;
 
   double &operator()(int i) {
     mxAssert(i >= 0 && i < nStates, "Node operator() out of bounds");
+    mxAssert(vals != nullptr, "Grrgh");
     return vals[i];
   }
-
-  ~Node() { delete vals; }
 };
 
 static_assert(sizeof(Node) % sizeof(double) == 0, "Node cannot be stored in double array");
 
 struct Potential {
-  int64_t nLo;
-  int64_t nHi;
-
+  int nLo;
+  int nHi;
   double *vals;
 
-  Potential(int nLo_, int nHi_) : nLo(nLo_), nHi(nHi_) {
-    vals = new double[nLo * nHi];
-  }
+  Potential() : nLo(0), nHi(0), vals(nullptr) { }
+  Potential(int nLo_, int nHi_, double *vals_) : nLo(nLo_), nHi(nHi_), vals(vals_) { }
 
-  Potential(const Potential &other) = delete;
+  //Potential(const Potential &other) = delete;
   Potential &operator=(const Potential &other) = delete;
 
   // Column major
   double &operator()(int lo, int hi) {
+    mxAssert(lo >= 0 && lo < nLo && hi >= 0 && hi < nHi, "Potential operator() out of bounds");
     return vals[nLo*hi + lo];
   }
 };
@@ -93,12 +88,18 @@ struct MinSum {
   int nEdges;
 
   // Undirected edge
+  // TODO: Replace with a cscMatrix (but that would require pointers)
   std::vector<std::vector<Edge>> neighbors;
-  std::vector<Potential *> potentials;
-  std::vector<Node *> nodes;
+  std::vector<Potential> potentials;
+  std::vector<Node> nodes;
   std::vector<DebugEdge> debugEdges;
 
-  void (*errFunc)(const char *);
+
+  typedef void (*TerrFunc)(const char *);
+  TerrFunc errFunc;
+
+  typedef int (*TprintFunc) (const char * format, ...);
+  TprintFunc printFunc;
 
   // from BK
   typedef Graph<double, double, double> dGraph;
@@ -106,29 +107,7 @@ struct MinSum {
   // Fixed length allocation
   std::vector<double> mem;
   size_t memUsed;
-
-  // Allocate from mem aligned to type T, with elements at end for
-  // nDoubles doubles. To use with Node and Potential.
-  template <class T>
-  T *alloc(size_t nDoubles) {
-    static_assert(sizeof(T) % sizeof(double) == 0, "T cannot be stored in double array");
-
-    size_t structDoubles = sizeof(T) / sizeof(double);
-    size_t nextMemUsed   = memUsed + structDoubles + nDoubles;
-
-    if (nextMemUsed >= mem.size()) {
-      // Perhaps round by powers of 2?
-      mem.resize(2 * nextMemUsed);
-    }
-
-    size_t off = memUsed;
-    memUsed = nextMemUsed;
-
-    return reinterpret_cast<T *>(mem.data() + off);
-  }
-
-  inline Node &getNode(size_t i) { return *nodes[i]; }
-  inline Potential &getPotential(size_t i) { return *potentials[i]; }
+  double *alloc(size_t nDoubles);
 
   // Construct MinSum with an initial number of nodes, a initial memory size
   // to store nodes and potentials of initMem DOUBLES (not bytes) and an
@@ -137,48 +116,23 @@ struct MinSum {
   // The fixed nNodes restriction is not difficult to remove, but incurs a
   // small runtime cost. Perhaps remove in future.
   MinSum(size_t nNodes_,
-         size_t nEdges_=1000,
-         void (*errFunc_)(const char*) = (void (*)(const char *)) puts,
+         TerrFunc errFunc_ = (void (*)(const char *)) puts,
+         TprintFunc printFunc_ = printf,
          size_t initMem=10000) :
     nNodes(nNodes_),
     nodes(nNodes_),
     neighbors(nNodes_),
-    nEdges(nEdges_),
     errFunc(errFunc_),
+    printFunc(printFunc_),
     mem(initMem),
     memUsed(0)
   {
-    potentials.reserve(nEdges);
+    potentials.reserve(0.5 * nNodes * nNodes);
   }
 
-  Node &addNode(size_t n, int nStates_) {
-    //nodes[n] = new (alloc<Node>(nStates_)) Node(nStates_);
-    nodes[n] = new Node(nStates_);
-    return *(nodes[n]);
-  }
-
-  // Potentials are always indexed lo on the rows, hi on the columns.
-  void addEdge(size_t src, size_t dst, double w, Potential *ep) {
-    size_t lo = std::min(src, dst);
-    size_t hi = std::max(src, dst);
-
-    mxAssert(lo >= 0 && hi < nNodes, "addEdge index out of bounds");
-
-    neighbors[lo].emplace_back(hi, /*srcHigher*/ false, w, ep);
-    neighbors[hi].emplace_back(lo, /*srcHigher*/ true,  w, ep);
-
-    nEdges++;
-  }
-
-  // should be fast because this happens a lot
-  Potential &addPotential(int nLo, int nHi) {
-    mxAssert(nLo > 0 && nHi > 0, "Potential was allocated without entries!");
-    // Allocate from our memory stash
-    //Potential *p = new (alloc<Potential>(nLo * nHi)) Potential(nLo, nHi);
-    Potential *p = new Potential(nLo, nHi);
-    potentials.push_back(p);
-    return *p;
-  }
+  Node &addNode(size_t n, int nStates_);
+  void addEdge(size_t src, size_t dst, double w, Potential *ep);
+  Potential &addPotential(int nLo, int nHi);
 
   enum class FailCode {
     SUCCESS = 0,
@@ -189,7 +143,7 @@ struct MinSum {
     INSUFFICIENT_STATES,
   };
 
-  bool isSubModular(Potential *p);
+  bool isSubModular(Potential &p);
   FailCode validate();
   // energy is 3-vector; [0] is total, [1] is unary, [2] is pairwise.
   void minimize(std::vector<int> &x, double *energy, double &maxFlow);

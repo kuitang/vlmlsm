@@ -71,13 +71,13 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
 
   pOut[oMisc] = misc;
 
-  MinSum m(nNodes, nEdges, mexErrMsgTxt);
+  MinSum m(nNodes, mexErrMsgTxt, mexPrintf);
   makeBetheMinSum(nNodes, theta, W, A, B, alpha, intervalSz, m);
 
   // Output the potentials
   CellMat<Mat<double>> Vm(m.potentials.size(), 1);
   for (int i = 0; i < m.potentials.size(); i++) {
-    Potential &p = *m.potentials[i];
+    Potential &p = m.potentials[i];
     Mat<double> potMat(p.nLo, p.nHi);
     std::copy(&p(0,0), &p(0,0) + p.nLo * p.nHi, potMat.re);
     Vm.set(i, static_cast<mxArray *>(potMat));
@@ -116,7 +116,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   Mat<double> oneMarginals(nNodes, 1);
   pOut[oOneMarginals] = oneMarginals;
   for (mwIndex n = 0; n < nNodes; n++) {
-    if (x[n] == m.nodes[n]->nStates - 1) { // if we're at the end
+    if (x[n] == m.nodes[n].nStates - 1) { // if we're at the end
       oneMarginals[n] = 1 - B[n];
     } else {
       oneMarginals[n] = A[n] + x[n] * intervalSz;
