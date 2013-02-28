@@ -1,6 +1,7 @@
 #include "mexcpp.h"
 #include "matrix.h"
 #include "BetheApprox.h"
+#include "tictoc.h"
 using namespace mexcpp;
 
 enum {
@@ -30,6 +31,8 @@ cscMatrix extractCSC(const mxArray *M) {
 }
 
 void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
+  clock_t mexBegin = tic();
+
   const char *usage = "Usage: [logZ, oneMarginals, twoMarginals, misc] = BetheApprox_mex(theta, W, epsilon, opts)";
   if (nIn != 4 || nOut != 4) {
     mexErrMsgIdAndTxt("BetheApprox_mex:args", usage);
@@ -89,18 +92,34 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
     mexPrintf("%s:%d Fail code %d\n", __FILE__, __LINE__, fc);
   }
 
-  //mexPrintf("MINIMIZING -- READ IT NOW!\n");
-
   std::vector<int> x;
   double energy[3];
   double maxFlow;
-  m.minimize(x, energy, maxFlow);
+
+  ////////////////////////////////////////////////////////////////
+  // ACTUAL CALCULATION HERE
+  ////////////////////////////////////////////////////////////////
+  MinStats stats = m.minimize(x, energy, maxFlow);
 
   misc.set("e", Mat<double>(1, 3, energy));
   misc.set("maxFlow", scalar<double>(maxFlow));
   misc.set("x", Mat<int>(x, /*colMat = */ false));
 
+  // Set the usage statistics
+  // There should be a better way...
+#define setStat(field) misc.setS(#field, stats.field)
+  setStat(nBKNodes);
+  setStat(nBKEdgeBound);
+  setStat(nBKEdges);
+  setStat(nZInfEdges);
+  setStat(nSTEdges);
+  setStat(nPairEdges);
+  setStat(BKConstructTime);
+  setStat(BKMaxFlowTime);
+  setStat(computeEnergyTime);
+
   // Output the edge list
+#ifndef NDEBUG
   Mat<double> elMat(m.debugEdges.size(), 4);
   for (int i = 0; i < m.debugEdges.size(); i++) {
     const auto &de = m.debugEdges[i];
@@ -110,6 +129,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
     elMat(i,3) = de.rw;
   }
   misc.set("elMat", elMat);
+#endif
 
   pOut[oLogZ] = scalar<double>(-energy[0]);
 
@@ -145,6 +165,8 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
       }
     }
   }
+
+  misc.set("mexTotTime", scalar<double>(toc(mexBegin)));
   //mexPrintf("%s:%d -- twoMarginals success\n", __FILE__, __LINE__);
 }
 

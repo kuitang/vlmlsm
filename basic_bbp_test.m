@@ -1,16 +1,24 @@
 %% Steup
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
-nTrials = 100;
+nTrials = 10;
 nNodes = 12;
 
 runJT = false;
 checkMatlab = false;
 
-totDiff = zeros(nTrials, 1);
-trueLogZGaps = zeros(nTrials, 1);
-lbpLogZGaps = zeros(nTrials, 1);
 epsilon = 1e-3;
+
+%%
+totDiff(nTrials) = 0;
+lbpTotDiff(nTrials) = 0;
+
+trueLogZGaps(nTrials) = 0;
+lbpLogZGaps(nTrials) = 0;
+
+betheTimes(nTrials) = 0;
+lbpTimes(nTrials) = 0;
+JTTimes(nTrials) = 0;
 
 %% Loop it
 for t = 1:nTrials
@@ -23,17 +31,20 @@ for t = 1:nTrials
     
     % Scale    
     W = sparse(W);    
-
+        
     %% Run the algorithms
     opts = struct();
-
-    [logZ, oneMarg, twoMarg, misc] = BetheApprox_mex(theta, W, epsilon, opts);    
     
-    if runJT
-        [trueLogZ, ~, trueOneMarg, trueTwoMarg] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');   
+    tic;
+    [logZ, oneMarg, twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, opts);    
+    betheTimes(t) = toc;
+    
+    if runJT        
+        [trueLogZ, ~, trueOneMarg, trueTwoMarg, JTTimes(t)] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');           
     end
     
-    [lbpLogZ, ~, lbpOneMarg, lbpTwoMarg]    = solveDAI(theta, W, 'BP', '[tol=1e-6,logdomain=0,updates=SEQRND]');    
+    tic;
+    [lbpLogZ, ~, lbpOneMarg, lbpTwoMarg, lbpTimes(t)] = solveDAI(theta, W, 'BP', '[tol=1e-9,logdomain=0,updates=SEQRND]');        
     
     if checkMatlab
         [CHECKlogZ, CHECKoneMarg, CHECKtwoMarg, CHECKmisc] = solveBethe(theta, W, epsilon);
@@ -46,21 +57,17 @@ for t = 1:nTrials
         assertMiscEqual(misc, CHECKmisc);
     end
     
-    % The BBP bounds were only approximately calculated anyways
-    %boundThresh = 0.002;
-    %assert(all(betheMisc.A <= boundThresh + trueOneMarg & ...
-    %           trueOneMarg - boundThresh <= (1 - betheMisc.B)), 'Bound violated!');
-                   
-    
-    if runJT
-        trueGap = trueLogZ - logZ;
-        assert(trueGap > 0, 'Approximate Bethe logZ did not lower bound true logZ');
-    end
-    
     lbpGap  = lbpLogZ - logZ;
     if lbpGap < 0
         warning('LBP logZ - Approximate Bethe logZ gap was negative');
     end
+
+    lbpOneMargErr = mean(abs(lbpOneMarg - oneMarg));
+    disp(['LBP logZ Gap = ' num2str(lbpGap)]);               
+    disp(['Average lbp-Bethe deviation of one-marginals: ' num2str(lbpOneMargErr) ]);
+    disp(['Average lbp-Bethe deviation of two-marginals: ' num2str(mean(abs(lbpTwoMarg(:) - twoMarg(:)))) ]);    
+    lbpLogZGaps(t) = lbpGap;
+    lbpTotDiff(t) = lbpOneMargErr;
     
     if abs(lbpGap) > epsilon
         fn = ['questionable_case ' datestr(now, 0);];
@@ -73,28 +80,36 @@ for t = 1:nTrials
     disp(['Optimization finished with epsilon = ' num2str(epsilon)]);
     
     if runJT
+        trueGap = trueLogZ - logZ;
+        assert(trueGap > 0, 'Approximate Bethe logZ did not lower bound true logZ');
+        
+        oneMargErr = mean(abs(trueOneMarg - oneMarg));
+        
         disp(['True logZ Gap = ' num2str(trueGap)]);
         disp(['Average error of one-marginals: ' num2str(oneMargErr) ]);
         disp(['Average error of two-marginals: ' num2str(mean(abs(trueTwoMarg(:) - twoMarg(:)))) ]);
-        oneMargErr = mean(abs(trueOneMarg - oneMarg));
         trueLogZGaps(t)  = trueGap;
-        totDiff(t) = oneMargErr;        
-    end    
-    
-    disp(['LBP logZ Gap = ' num2str(lbpGap)]);               
-    lbpLogZGaps(t) = lbpGap;
+        totDiff(t) = oneMargErr;
+    end
+
 end
+
+betheTimes
+lbpTimes
 
 epsilonTxt = [' for \epsilon = ' num2str(epsilon)];
 
-figure;
-hist(totDiff);
-title(['Average error of one-marginals' epsilonTxt]);
+if runJT
+    figure;
+    hist(totDiff);
+    title(['Average error of one-marginals' epsilonTxt]);
+    
+    figure;
+    hist(trueLogZGaps);
+    title(['True logZ - Approximate Bethe logZ ' epsilonTxt]);
 
-figure;
-hist(trueLogZGaps);
-title(['True logZ - Approximate Bethe logZ ' epsilonTxt]);
+    figure;
+    hist(lbpLogZGaps);
+    title(['LBP logZ - Approximate Bethe logZ ' epsilonTxt]);
+end
 
-figure;
-hist(lbpLogZGaps);
-title(['LBP logZ - Approximate Bethe logZ ' epsilonTxt]);

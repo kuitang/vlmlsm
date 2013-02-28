@@ -55,6 +55,11 @@ struct cscMatrix {
   size_t *ir, *jc;
 };
 
+inline void deleteCscMatrix(cscMatrix &M) {
+  delete[] M.pr;
+  delete[] M.ir;
+  delete[] M.jc;
+}
 
 bool propogateBetheBound(size_t nNodes,
                          const double *theta,

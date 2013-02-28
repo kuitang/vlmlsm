@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <numeric>
 #include "MinSum.h"
+#include "tictoc.h"
 
 // TODO: errMsg function
 
@@ -118,8 +119,11 @@ MinSum::FailCode MinSum::validate() {
   return FailCode::SUCCESS;
 }
 
-void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
+MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
   // Compute offsets to convert (r, k) indices to linear
+
+  clock_t constructBegin = tic();
+
   std::vector<int> offsets;
   offsets.push_back(0);
   for (int r = 1; r < nNodes; r++) {
@@ -127,7 +131,8 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
   }
   mxAssert(offsets.size() == nNodes, "Offsets and nodes epic fail");
 
-  int nBKNodes = offsets.back() + nodes.back().nStates - 1;
+  MinStats stats;
+  stats.nBKNodes = offsets.back() + nodes.back().nStates - 1;
 
 //  for (int r = 0; r < nNodes; r++) {
 //    mexPrintf("%s:%d -- Node %d@%p had %d represented states. Offset is %d\n",
@@ -138,27 +143,26 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
   // one edge per node for s/t (but those don't count)
   // one edge per state for the zero/infinity (captured by offset)
   // variable neighbors for neighbors in underlying graph
-  int nBKneighbors = offsets.back() + nodes.back().nStates;
+  stats.nBKEdgeBound = offsets.back() + nodes.back().nStates;
 
   for (int r = 0; r < nNodes; r++) {
     for (const Edge &e : neighbors[r]) {
       int rr = e.dst;
       int rStates  = nodes[r].nStates - 2;
       int rrStates = nodes[rr].nStates - 2;
-      nBKneighbors += rStates * rrStates;
+      stats.nBKEdgeBound = rStates * rrStates;
     }
   }
 
   // Make our graph
-  dGraph *gp = new dGraph(nBKNodes, nBKneighbors, errFunc);
-  mexPrintf("%s:%d -- nBKNeighbors = %d\n", __FILE__, __LINE__, nBKneighbors);
-  mexPrintf("%s:%d -- nBKNodes = %d\n", __FILE__, __LINE__, nBKNodes);
+  dGraph *gp = new dGraph(stats.nBKNodes, stats.nBKEdgeBound, errFunc);
 
   // Add nodes
-  gp->add_node(nBKNodes);
+  gp->add_node(stats.nBKNodes);
 
   // Zero/Infinity weights
   int loNode, hiNode;
+  stats.nZInfEdges = 0;
   for (int r = 0; r < nodes.size(); r++) {
     Node &currNode = nodes[r];
     //mexPrintf("%s:%d -- r = %d, currNode->nStates = %d\n", __FILE__, __LINE__, r, currNode->nStates);
@@ -170,9 +174,12 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
       hiNode = offsets[r] + k + 1;
 
       mxAssert(loNode >= 0 && hiNode >= 0, "No negative nodes!");
-      mxAssert(loNode < nBKNodes && hiNode < nBKNodes, "Node idx out of bounds!");
+      mxAssert(loNode < stats.nBKNodes && hiNode < stats.nBKNodes, "Node idx out of bounds!");
       gp->add_edge(loNode, hiNode, 0.0, INF);
+#ifndef NDEBUG
       debugEdges.emplace_back(loNode + 1, hiNode + 1, 0.0, INF);
+#endif
+      stats.nZInfEdges++;
 
       //mexPrintf("%s:%d -- EDGE %d -> %d FW = %g RW = %g\n",
       //          __FILE__, __LINE__, loNode, hiNode, 0.0, INF);
@@ -181,6 +188,7 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
 
   // Unary source/sink weights
   double qrk;
+  stats.nSTEdges = 0;
   for (int r = 0; r < nNodes; r++) {
     for (int k = 0; k < nodes[r].nStates - 1; k++) {
       qrk = 0;
@@ -199,14 +207,19 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
       //mexPrintf("%s:%d Unary term was %g\n", __FILE__, __LINE__, nr(k) - nr(k+1));
       int node = offsets[r] + k;
 
+      stats.nSTEdges++;
       if (qrk > 0) {
         gp->add_tweights(node, qrk, 0);
+#ifndef NDEBUG
         debugEdges.emplace_back(-1, node + 1, qrk, 0);
+#endif
         //mexPrintf("%s:%d -- S EDGE s -> %d W = %g\n",
         //          __FILE__, __LINE__, node, qrk);
       } else {
         gp->add_tweights(node, 0, -qrk);
+#ifndef NDEBUG
         debugEdges.emplace_back(node + 1, -2, -qrk, 0);
+#endif
         //mexPrintf("%s:%d -- T EDGE %d -> t W = %g\n",
         //          __FILE__, __LINE__, node, -qrk);
       }
@@ -214,6 +227,7 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
   }
 
   // Pairwise weights
+  stats.nPairEdges = 0;
   int rr, rNode, rrNode;
   double inside, arr;
   for (int r = 0; r < nNodes; r++) {
@@ -241,19 +255,30 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
           mxAssert(arr >= 0, "not submodular!");
 
           gp->add_edge(rNode, rrNode, arr, 0.0);
+#ifndef NDEBUG
           debugEdges.emplace_back(rNode + 1, rrNode + 1, arr, 0.0);
+#endif
+          stats.nPairEdges++;
           //mexPrintf("%s:%d -- EDGE %d -> %d FW = %g RW = %g\n",
           //          __FILE__, __LINE__, rNode, rrNode, arr, 0.0);
         }
       }
     }
   }
+  stats.nBKEdges = stats.nZInfEdges + stats.nSTEdges + stats.nPairEdges;
+  mexPrintf("%s:%d -- stats.nBKNodes = %d\n", __FILE__, __LINE__, stats.nBKNodes);
+  mexPrintf("%s:%d -- stats.nBKEdges = %d\n", __FILE__, __LINE__, stats.nBKEdges);
 
   //mexPrintf("%s:%d -- Before calling gp->maxflow()\n", __FILE__, __LINE__);
-  maxFlow = gp->maxflow();
+  stats.BKConstructTime = toc(constructBegin);
 
-  std::vector<bool> cut(nBKNodes);
-  for (int n = 0; n < nBKNodes; n++) {
+  clock_t maxFlowBegin = tic();
+  maxFlow = gp->maxflow();
+  stats.BKMaxFlowTime = toc(maxFlowBegin);
+
+  clock_t computeEnergyBegin = tic();
+  std::vector<bool> cut(stats.nBKNodes);
+  for (int n = 0; n < stats.nBKNodes; n++) {
     cut[n] = gp->what_segment(n) == dGraph::SINK;
   }
 
@@ -285,5 +310,8 @@ void MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) {
   energy[0] = energy[1] + energy[2];
 
   delete gp;
+  stats.computeEnergyTime = toc(computeEnergyBegin);
+
+  return stats;
 }
 

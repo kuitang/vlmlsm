@@ -28,7 +28,7 @@ struct Node {
   }
 };
 
-static_assert(sizeof(Node) % sizeof(double) == 0, "Node cannot be stored in double array");
+//static_assert(sizeof(Node) % sizeof(double) == 0, "Node cannot be stored in double array");
 
 struct Potential {
   int nLo;
@@ -74,6 +74,7 @@ struct Edge {
   }
 };
 
+#ifndef NDEBUG
 struct DebugEdge {
   int src;
   int dst;
@@ -81,6 +82,21 @@ struct DebugEdge {
   double rw;
 
   DebugEdge(int s, int d, double f, double r) : src(s), dst(d), fw(f), rw(r) { }
+};
+#endif
+
+struct MinStats {
+  int nBKNodes;
+  int nBKEdgeBound;
+
+  int nBKEdges;
+  int nZInfEdges;
+  int nSTEdges;
+  int nPairEdges;
+
+  double BKConstructTime;
+  double BKMaxFlowTime;
+  double computeEnergyTime;
 };
 
 struct MinSum {
@@ -92,8 +108,9 @@ struct MinSum {
   std::vector<std::vector<Edge>> neighbors;
   std::vector<Potential> potentials;
   std::vector<Node> nodes;
+#ifndef NDEBUG
   std::vector<DebugEdge> debugEdges;
-
+#endif
 
   typedef void (*TerrFunc)(const char *);
   TerrFunc errFunc;
@@ -146,6 +163,6 @@ struct MinSum {
   bool isSubModular(Potential &p);
   FailCode validate();
   // energy is 3-vector; [0] is total, [1] is unary, [2] is pairwise.
-  void minimize(std::vector<int> &x, double *energy, double &maxFlow);
+  MinStats minimize(std::vector<int> &x, double *energy, double &maxFlow);
 };
 

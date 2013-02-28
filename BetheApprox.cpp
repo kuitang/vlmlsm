@@ -259,5 +259,7 @@ void makeBetheMinSum(size_t nNodes,
       }
     }
   }
+
+  deleteCscMatrix(intervals);
 }
 

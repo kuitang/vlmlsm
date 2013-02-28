@@ -1,4 +1,4 @@
-function [ logZ, joint, oneMarginals, twoMarginals ] = solveDAI(theta, W, method, daiOpts)
+function [ logZ, joint, oneMarginals, twoMarginals, daiTime ] = solveDAI(theta, W, method, daiOpts)
 % solveDAI Find marginals of problem in Eq 1 by libDAI's methods
 %   [oneMarginals, twoMarginals, joint, logZ] = solveJTree(theta, W)
 %
@@ -37,7 +37,9 @@ function [ logZ, joint, oneMarginals, twoMarginals ] = solveDAI(theta, W, method
     end
     
     % Call DAI
+    tic;
     [logZ,q,md,oneMStruct,twoMStruct,qmap] = dai(psi, method, daiOpts);
+    daiTime = toc;
 
     % Sanitize the results
     joint = q{1}.P;
