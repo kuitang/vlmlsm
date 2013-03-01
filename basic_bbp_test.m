@@ -2,12 +2,12 @@
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 nTrials = 10;
-nNodes = 12;
+nNodes = 16;
 
-runJT = false;
+runJT = true;
 checkMatlab = false;
 
-epsilon = 1e-3;
+epsilon = 1e-2;
 
 %%
 totDiff(nTrials) = 0;
@@ -17,6 +17,8 @@ trueLogZGaps(nTrials) = 0;
 lbpLogZGaps(nTrials) = 0;
 
 betheTimes(nTrials) = 0;
+bkEdges(nTrials) = 0;
+maxFlowTimes(nTrials) = 0;
 lbpTimes(nTrials) = 0;
 JTTimes(nTrials) = 0;
 
@@ -36,8 +38,18 @@ for t = 1:nTrials
     opts = struct();
     
     tic;
-    [logZ, oneMarg, twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, opts);    
+    [logZ, oneMarg, twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, opts);        
     betheTimes(t) = toc;
+    
+    bkEdges(t) = misc.nBKEdges;
+    maxFlowTimes(t)  = misc.BKMaxFlowTime;
+    
+    times = [misc.makeMinSumTime misc.BKConstructTime misc.BKMaxFlowTime] ./ misc.mexTotTime;
+    fprintf(1, 'Make minsum = %g, BK construction = %g, Max flow = %g, Overhead = %g\n', ...
+            times(1), times(2), times(3), 1 - sum(times));
+    fprintf(1, 'MEX-call overhead: %g\n', 1 - misc.mexTotTime / betheTimes(t));    
+        
+    misc
     
     if runJT        
         [trueLogZ, ~, trueOneMarg, trueTwoMarg, JTTimes(t)] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');           
@@ -47,8 +59,9 @@ for t = 1:nTrials
     [lbpLogZ, ~, lbpOneMarg, lbpTwoMarg, lbpTimes(t)] = solveDAI(theta, W, 'BP', '[tol=1e-9,logdomain=0,updates=SEQRND]');        
     
     if checkMatlab
+        %% Check against MATLAB (cell execution)
         [CHECKlogZ, CHECKoneMarg, CHECKtwoMarg, CHECKmisc] = solveBethe(theta, W, epsilon);
-        [logZ, oneMarg, twoMarg, misc] = solveBethe(theta, W, epsilon);
+        [logZ, oneMarg, twoMarg, misc] = BetheApprox_debug_mex(theta, W, epsilon, opts);
         intervalSz = getIntervalSz(misc.A, misc.B, W, epsilon);
 
         assertElementsAlmostEqual(logZ, CHECKlogZ);    
@@ -96,6 +109,14 @@ end
 
 betheTimes
 lbpTimes
+if runJT
+    JTTimes
+end
+
+figure;
+plot(bkEdges, maxFlowTimes, bkEdges, betheTimes);
+legend('Max Flow Time', 'Total Bethe Time');
+title('Runtime vs # of BK Edges');
 
 epsilonTxt = [' for \epsilon = ' num2str(epsilon)];
 

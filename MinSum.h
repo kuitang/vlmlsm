@@ -124,6 +124,7 @@ struct MinSum {
   // Fixed length allocation
   std::vector<double> mem;
   size_t memUsed;
+  size_t MAX_MEM;
   double *alloc(size_t nDoubles);
 
   // Construct MinSum with an initial number of nodes, a initial memory size
@@ -135,13 +136,15 @@ struct MinSum {
   MinSum(size_t nNodes_,
          TerrFunc errFunc_ = (void (*)(const char *)) puts,
          TprintFunc printFunc_ = printf,
-         size_t initMem=10000) :
+         size_t initMem=10000,
+         size_t maxMem=200000000) :
     nNodes(nNodes_),
     nodes(nNodes_),
     neighbors(nNodes_),
     errFunc(errFunc_),
     printFunc(printFunc_),
     mem(initMem),
+    MAX_MEM(maxMem),
     memUsed(0)
   {
     potentials.reserve(0.5 * nNodes * nNodes);

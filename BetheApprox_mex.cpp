@@ -57,40 +57,32 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   double bbThresh = 0.002;
   int maxIter = 50000; // something really huge
 
+  clock_t makeMinSumBegin = tic();
   propogateBetheBound(nNodes, theta, W, bbThresh, maxIter, A, B, alpha);
   double intervalSz = getIntervalSz(nNodes, A, B, W, alpha, epsilon);
 
-  // DEBUGGING: COMPARE THE BOUND PROPAGATION (TODO)
-  auto misc = StructMat(1, 1, {"A", "B", "intervalSz", "Vm", "elMat", "e", "maxFlow", "x"});
-
-  Mat<double> Amat(nNodes, 1);
-  std::copy(A, A + nNodes, Amat.re);
-  misc.set("A", Amat);
-
-  auto Bmat = Mat<double>(nNodes, 1);
-  std::copy(B, B + nNodes, Bmat.re);
-  misc.set("B", Bmat);
-  misc.setS("intervalSz", intervalSz);
+  // DEBUGGING: COMPARE THE BOUND PROPAGATION
+  auto misc = StructMat(1, 1, {"A", "B", "intervalSz", "Vm", "elMat", "e",
+      "maxFlow", "x", "nBKNodes", "nBKEdgeBound", "nBKEdges", "nZInfEdges",
+      "nSTEdges", "nPairEdges", "BKConstructTime", "BKMaxFlowTime", "computeEnergyTime",
+      "makeMinSumTime", "mexTotTime"});
 
   pOut[oMisc] = misc;
 
-  MinSum m(nNodes, mexErrMsgTxt, mexPrintf);
-  makeBetheMinSum(nNodes, theta, W, A, B, alpha, intervalSz, m);
 
-  // Output the potentials
-  CellMat<Mat<double>> Vm(m.potentials.size(), 1);
-  for (int i = 0; i < m.potentials.size(); i++) {
-    Potential &p = m.potentials[i];
-    Mat<double> potMat(p.nLo, p.nHi);
-    std::copy(&p(0,0), &p(0,0) + p.nLo * p.nHi, potMat.re);
-    Vm.set(i, static_cast<mxArray *>(potMat));
-  }
-  misc.set("Vm", Vm);
+  // TODO: Principled estimation of memory; not just 10MM.
+  // 2 gigs
+  const size_t MAX_DOUBLES = 200000000;
+  MinSum m(nNodes, mexErrMsgTxt, mexPrintf, 10000000, MAX_DOUBLES);
+  makeBetheMinSum(nNodes, theta, W, A, B, alpha, intervalSz, m);
 
   auto fc = m.validate();
   if (fc != MinSum::FailCode::SUCCESS) {
     mexPrintf("%s:%d Fail code %d\n", __FILE__, __LINE__, fc);
   }
+
+  double makeMinSumTime = toc(makeMinSumBegin);
+  misc.setS("makeMinSumTime", makeMinSumTime);
 
   std::vector<int> x;
   double energy[3];
@@ -129,6 +121,27 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
     elMat(i,3) = de.rw;
   }
   misc.set("elMat", elMat);
+
+  // Output the potentials
+  CellMat<Mat<double>> Vm(m.potentials.size(), 1);
+  for (int i = 0; i < m.potentials.size(); i++) {
+    Potential &p = m.potentials[i];
+    Mat<double> potMat(p.nLo, p.nHi);
+    std::copy(&p(0,0), &p(0,0) + p.nLo * p.nHi, potMat.re);
+    Vm.set(i, static_cast<mxArray *>(potMat));
+  }
+  misc.set("Vm", Vm);
+
+
+  Mat<double> Amat(nNodes, 1);
+  std::copy(A, A + nNodes, Amat.re);
+  misc.set("A", Amat);
+
+  auto Bmat = Mat<double>(nNodes, 1);
+  std::copy(B, B + nNodes, Bmat.re);
+  misc.set("B", Bmat);
+  misc.setS("intervalSz", intervalSz);
+
 #endif
 
   pOut[oLogZ] = scalar<double>(-energy[0]);

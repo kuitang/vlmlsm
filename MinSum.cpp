@@ -63,6 +63,7 @@ Potential &MinSum::addPotential(int nLo, int nHi) {
 
 double *MinSum::alloc(size_t nDoubles) {
   size_t nextMemUsed = memUsed + nDoubles;
+  if (nextMemUsed > MAX_MEM) { errFunc("MinSum::alloc: Exceeded memory cap!"); }
   if (nextMemUsed >= mem.size()) {
     double *oldBase = mem.data();
     mem.resize(2 * nextMemUsed);
@@ -139,18 +140,16 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
 //              __FILE__, __LINE__, r, nodes[r], nodes[r]->nStates - 1, offsets[r]);
 //  }
 
-  // upper bound on number of neighbors:
-  // one edge per node for s/t (but those don't count)
-  // one edge per state for the zero/infinity (captured by offset)
-  // variable neighbors for neighbors in underlying graph
+  // Upper-bound the number of zero-infinity edges
   stats.nBKEdgeBound = offsets.back() + nodes.back().nStates;
 
+  // Count the pairwise edges
   for (int r = 0; r < nNodes; r++) {
     for (const Edge &e : neighbors[r]) {
       int rr = e.dst;
-      int rStates  = nodes[r].nStates - 2;
-      int rrStates = nodes[rr].nStates - 2;
-      stats.nBKEdgeBound = rStates * rrStates;
+      int rStates  = nodes[r].nStates - 1;
+      int rrStates = nodes[rr].nStates - 1;
+      stats.nBKEdgeBound += rStates * rrStates;
     }
   }
 
@@ -265,7 +264,7 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
       }
     }
   }
-  stats.nBKEdges = stats.nZInfEdges + stats.nSTEdges + stats.nPairEdges;
+  stats.nBKEdges = stats.nZInfEdges + stats.nPairEdges;
   mexPrintf("%s:%d -- stats.nBKNodes = %d\n", __FILE__, __LINE__, stats.nBKNodes);
   mexPrintf("%s:%d -- stats.nBKEdges = %d\n", __FILE__, __LINE__, stats.nBKEdges);
 
