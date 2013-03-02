@@ -1,30 +1,33 @@
 function V = makeMonge(N, M, figs)
-% makeMonge Generate submodular matrix.
+% makeMonge Generate random Monge matrix.
 %
 %   V = makeMonge(N, M, sigFigs) makes a submodular matrix of size NxM with
 %   figs digits after the decimal place, if specified.
 %
-%   Currently it generates two random monotonic sequences and takes their
-%   L1 norm. TODO: Vary functions.
+%   
+%   We simply generate a random nonnegative "density matrix" and sum it to
+%   get a "distribution" Monge matrix.
+%
+%   References
+%   [1] Rainer E. Burkard, "Monge properties, discrete convexity and
+%       applications", European Journal of Operational Research, 176: 1
+%       (2007), pp 1-14, doi:10.1016/j.ejor.2005.04.050
 
-    % Start by constructing a square matrix for simplicity
-    maxL = max(N, M);    
-    while true
-        % Monotonic sequence
-        %     Vm(:,:,2) = Vm(:,:,1).^2; % L2 term
-        seq1 = cumsum(rand(1, maxL));
-        seq2 = cumsum(rand(1, maxL));
-        V = abs(bsxfun(@minus, seq1, seq2'));
-        if nargin > 2 && figs
-            V = fround(V, figs);
-        end
-        if IsMonge(V)            
-            break;
-        end        
+
+    d = rand(N, M);
+    
+    if nargin > 2 && figs
+        d = fround(d, figs);
     end
     
-    % Slice to fit
-    V = V(1:N,1:M);
-    
+    V = zeros(N, M);
+    for j = 1:M
+        for i = 1:N
+            % Burkard (3); note the summation just means "add everything in
+            % the lower-left corner"
+            V(i,j) = sum(vec(d(i:N,1:j)));
+        end
+    end
+        
     assert(IsMonge(V));
 end

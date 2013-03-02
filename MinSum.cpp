@@ -96,8 +96,10 @@ double *MinSum::alloc(size_t nDoubles) {
 
 MinSum::FailCode MinSum::validate() {
   for (Potential &p : potentials) {
-    if (!isSubModular(p)) { return FailCode::NOT_TRANSPOSED_POTENTIAL;  }
+    if (!isSubModular(p)) { return FailCode::NOT_SUBMODULAR;  }
   }
+
+  // TODO: Check for symmetry
 
   for (int src = 0; src < nNodes; src++) {
     for (const Edge &e : neighbors[src]) {
@@ -110,12 +112,13 @@ MinSum::FailCode MinSum::validate() {
 
   for (const Node &n : nodes) {
     if (n.nStates < 2) {
-      mxAssert(false, "Node had fewer than two states!");
       return FailCode::INSUFFICIENT_STATES;
     }
   }
 
-  mxAssert(nNodes == nodes.size(), "Not enough nodes!");
+  if (nNodes != nodes.size()) {
+    return FailCode::INSUFFICIENT_NODES;
+  }
 
   return FailCode::SUCCESS;
 }
@@ -125,6 +128,10 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
 
   clock_t constructBegin = tic();
 
+  /////////////////////////////////////////////////
+  // Compute the offset array. This translates between
+  // the (node, state) index into a linear (bkNode) index.
+  /////////////////////////////////////////////////
   std::vector<int> offsets;
   offsets.push_back(0);
   for (int r = 1; r < nNodes; r++) {
@@ -140,7 +147,9 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
 //              __FILE__, __LINE__, r, nodes[r], nodes[r]->nStates - 1, offsets[r]);
 //  }
 
-  // Upper-bound the number of zero-infinity edges
+  /////////////////////////////////////////////////
+  // Upper-bound the edge count so BK graph can preallocate.
+  /////////////////////////////////////////////////
   stats.nBKEdgeBound = offsets.back() + nodes.back().nStates;
 
   // Count the pairwise edges
@@ -159,33 +168,9 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
   // Add nodes
   gp->add_node(stats.nBKNodes);
 
-  // Zero/Infinity weights
-  int loNode, hiNode;
-  stats.nZInfEdges = 0;
-  for (int r = 0; r < nodes.size(); r++) {
-    Node &currNode = nodes[r];
-    //mexPrintf("%s:%d -- r = %d, currNode->nStates = %d\n", __FILE__, __LINE__, r, currNode->nStates);
-
-    for (int k = 0; k < currNode.nStates - 2; k++) {
-      //mexPrintf("%s:%d -- r = %d, k = %d, currNode->nStates = %d\n",
-      //          __FILE__, __LINE__, r, k, currNode->nStates);
-      loNode = offsets[r] + k;
-      hiNode = offsets[r] + k + 1;
-
-      mxAssert(loNode >= 0 && hiNode >= 0, "No negative nodes!");
-      mxAssert(loNode < stats.nBKNodes && hiNode < stats.nBKNodes, "Node idx out of bounds!");
-      gp->add_edge(loNode, hiNode, 0.0, INF);
-#ifndef NDEBUG
-      debugEdges.emplace_back(loNode + 1, hiNode + 1, 0.0, INF);
-#endif
-      stats.nZInfEdges++;
-
-      //mexPrintf("%s:%d -- EDGE %d -> %d FW = %g RW = %g\n",
-      //          __FILE__, __LINE__, loNode, hiNode, 0.0, INF);
-    }
-  }
-
-  // Unary source/sink weights
+  /////////////////////////////////////////////////
+  // Add unary source/sink edges.
+  /////////////////////////////////////////////////
   double qrk;
   stats.nSTEdges = 0;
   for (int r = 0; r < nNodes; r++) {
@@ -225,7 +210,40 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
     }
   }
 
-  // Pairwise weights
+  /////////////////////////////////////////////////
+  // Add zero/infinity edges between nodes representing
+  // successive states.
+  /////////////////////////////////////////////////
+  int loNode, hiNode;
+  stats.nZInfEdges = 0;
+  for (int r = 0; r < nodes.size(); r++) {
+    Node &currNode = nodes[r];
+    //mexPrintf("%s:%d -- r = %d, currNode->nStates = %d\n", __FILE__, __LINE__, r, currNode->nStates);
+
+    for (int k = 0; k < currNode.nStates - 2; k++) {
+      //mexPrintf("%s:%d -- r = %d, k = %d, currNode->nStates = %d\n",
+      //          __FILE__, __LINE__, r, k, currNode->nStates);
+      loNode = offsets[r] + k;
+      hiNode = offsets[r] + k + 1;
+
+      mxAssert(loNode >= 0 && hiNode >= 0, "No negative nodes!");
+      mxAssert(loNode < stats.nBKNodes && hiNode < stats.nBKNodes, "Node idx out of bounds!");
+      gp->add_edge(loNode, hiNode, 0.0, INF);
+#ifndef NDEBUG
+      debugEdges.emplace_back(loNode + 1, hiNode + 1, 0.0, INF);
+#endif
+      stats.nZInfEdges++;
+
+      //mexPrintf("%s:%d -- EDGE %d -> %d FW = %g RW = %g\n",
+      //          __FILE__, __LINE__, loNode, hiNode, 0.0, INF);
+    }
+  }
+
+
+  /////////////////////////////////////////////////
+  // Add pairwise edges between all states for nodes
+  // that were neighbors in the original graph.
+  /////////////////////////////////////////////////
   stats.nPairEdges = 0;
   int rr, rNode, rrNode;
   double inside, arr;
@@ -265,25 +283,33 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
     }
   }
   stats.nBKEdges = stats.nZInfEdges + stats.nPairEdges;
+
   mexPrintf("%s:%d -- stats.nBKNodes = %d\n", __FILE__, __LINE__, stats.nBKNodes);
   mexPrintf("%s:%d -- stats.nBKEdges = %d\n", __FILE__, __LINE__, stats.nBKEdges);
 
-  //mexPrintf("%s:%d -- Before calling gp->maxflow()\n", __FILE__, __LINE__);
   stats.BKConstructTime = toc(constructBegin);
 
+
+  /////////////////////////////////////////////////
+  // Run maxflow
+  /////////////////////////////////////////////////
   clock_t maxFlowBegin = tic();
   maxFlow = gp->maxflow();
   stats.BKMaxFlowTime = toc(maxFlowBegin);
 
+  /////////////////////////////////////////////////
+  // Recover energy
+  /////////////////////////////////////////////////
   clock_t computeEnergyBegin = tic();
   std::vector<bool> cut(stats.nBKNodes);
   for (int n = 0; n < stats.nBKNodes; n++) {
     cut[n] = gp->what_segment(n) == dGraph::SINK;
   }
 
-
   //mexPrintf("%s:%d -- Before assigning cut\n", __FILE__, __LINE__);
   x.resize(nNodes);
+
+  // The state of node r is the lowest state asssigned to the sink.
   for (int r = 0; r < nNodes; r++) {
     int nst = nodes[r].nStates;
     int k = 0;
@@ -293,7 +319,6 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
     x[r] = k;
   }
 
-  // compute energy
   energy[1] = 0.0;
   energy[2] = 0.0;
   for (int src = 0; src < nNodes; src++) {

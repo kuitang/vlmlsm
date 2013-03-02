@@ -191,7 +191,7 @@ void makeBetheMinSum(size_t nNodes,
                      const double *alpha,
                      double intervalSz,
                      MinSum &m) {
-  assert(m.nNodes == nNodes);
+  mxAssert(m.nNodes == nNodes, "nNodes was a lie.");
 
   cscMatrix intervals = calcIntervals(nNodes, A, B, intervalSz);
 
@@ -210,35 +210,27 @@ void makeBetheMinSum(size_t nNodes,
     }
   }
 
+  // We know ahead of time there will be nnz distinct potentials.
+  m.potentials.reserve(W.nzMax / 2);
+
   // Pairwise: (Eq 5)
   for (size_t hi = 0; hi < nNodes; hi++) {
     int nHiStates = m.nodes[hi].nStates;
-    if (nHiStates < 0) {
-      mexErrMsgTxt("nHiStates cannot be negative");
-    }
+    mxAssert(nHiStates >= 0, "nHiStates cannot be negative.");
 
     for (size_t nodeIdx = W.jc[hi]; nodeIdx < W.jc[hi+1]; nodeIdx++) {
       int lo = W.ir[nodeIdx];
 
       if (hi > lo) {
         int nLoStates = m.nodes[lo].nStates;
-        if (nLoStates < 0) {
-          mexErrMsgTxt("nLoStates cannot be negative");
-        }
+        mxAssert(nLoStates >= 0, "nLoStates cannot be negative.");
 
         // Only look at the upper triangular (minus diagonal)
         double w = W.pr[nodeIdx];
         double aij = alpha[nodeIdx];
 
-        assert(aij != 0);
+        mxAssert(aij != 0, "alpha cannot be zero.");
 
-        // Right now, this is already zero-allocated.
-        if (nLoStates < 0) {
-          mexErrMsgTxt("nLoStates was negative before addPotential");
-        }
-        if (nHiStates < 0) {
-          mexErrMsgTxt("nHiStates was negative before addPotential");
-        }
         Potential &potential = m.addPotential(nLoStates, nHiStates);
         m.addEdge(lo, hi, 1.0, &potential);
 

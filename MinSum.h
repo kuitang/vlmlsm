@@ -161,6 +161,7 @@ struct MinSum {
     NOT_TRANSPOSED_POTENTIAL,
     SELF_LOOP,
     INSUFFICIENT_STATES,
+    INSUFFICIENT_NODES,
   };
 
   bool isSubModular(Potential &p);

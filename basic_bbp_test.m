@@ -1,38 +1,42 @@
-%% Steup
+%% Setup
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 nTrials = 10;
-nNodes = 16;
 
+nNodes = 16;
 runJT = true;
+testTrees = false;
 checkMatlab = false;
 
 epsilon = 1e-2;
 
-%%
-totDiff(nTrials) = 0;
-lbpTotDiff(nTrials) = 0;
-
-trueLogZGaps(nTrials) = 0;
-lbpLogZGaps(nTrials) = 0;
-
-betheTimes(nTrials) = 0;
-bkEdges(nTrials) = 0;
-maxFlowTimes(nTrials) = 0;
-lbpTimes(nTrials) = 0;
-JTTimes(nTrials) = 0;
+%% Zero-out some vectors... does it even matter?
+% totDiff(nTrials) = 0;
+% lbpTotDiff(nTrials) = 0;
+% 
+% trueLogZGaps(nTrials) = 0;
+% lbpLogZGaps(nTrials) = 0;
+% 
+% betheTimes(nTrials) = 0;
+% bkEdges(nTrials) = 0;
+% maxFlowTimes(nTrials) = 0;
+% lbpTimes(nTrials) = 0;
+% JTTimes(nTrials) = 0;
 
 %% Loop it
 for t = 1:nTrials
     %% Set up the problem    
     theta = -nNodes/2*rand(nNodes, 1);
     W = makeMonge(nNodes, nNodes);    
-    W(1:nNodes+1:nNodes*nNodes) = 0; 
-    W = .5 * (W + W');
-    W = W ./ max(W(:));    
+    W(1:nNodes+1:nNodes*nNodes) = 0;                     % Remove diagonal
+    W = .5 * (W + W');                                   % Symmetrize    
+    W = W ./ max(W(:));                                  % Normalize (VERY IMPORTANT TO PREVENT OVERFLOW!)
+    W = sparse(W);
     
-    % Scale    
-    W = sparse(W);    
+    if testTrees
+        T = randTree(nNodes);
+        W = W .* T;
+    end
         
     %% Run the algorithms
     opts = struct();

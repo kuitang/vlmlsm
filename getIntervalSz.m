@@ -1,5 +1,7 @@
-function [intervalSz] = getIntervalSz(A, B, W, epsilon);
-    % Interval size (gamma) calculation    
+function [intervalSz] = getIntervalSz(A, B, W, epsilon)
+% getIntervalSz Calculate the required interval size for epsilon accuracy
+%
+% intervalSz = getIntervalSz(A, B, W, epsilon)    
     nNodes = size(W, 1);
     nEdges = nnz(W) / 2;
     
