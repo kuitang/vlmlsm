@@ -89,9 +89,12 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
   //
   // With floating point numbers, we will assume that the endpoint is never
   // reached by stepping with intervalSz.
+  //
+  // We might have intervalLength < intervalSz. In that case, we still need
+  // the left endpoint, hence the max.
   for (size_t n = 0; n < nNodes; n++) {
     double intervalLength = 1 - B[n] - A[n];
-    size_t points = std::ceil(intervalLength / intervalSz) + 1;
+    size_t points = std::max((int) std::ceil(intervalLength / intervalSz), 1) + 1;
     if (points > maxPoints) { maxPoints = points; }
     totPoints += points;
   }
@@ -112,6 +115,7 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
     mxAssert(A[n] < 1 - B[n], "bounds failed.");
 
     for (double q = A[n]; q < 1 - B[n]; q += intervalSz) {
+      mxAssert(ind < totPoints, "You fucked up calculating totPoints!");
       m.ir[ind] = k;
       m.pr[ind] = q;
       ind++;
@@ -178,7 +182,8 @@ double getIntervalSz(size_t nNodes,
   }
 
   double Omega = std::max(aMax, bMax);
-  double density = (W.nzMax + nNodes) / (W.N * W.M);
+  // cast inside to force double division
+  double density = (W.nzMax + nNodes) / double(W.N * W.M);
 
   return sqrt(2*epsilon / (nNodes * Omega * sqrt(density)));
 }

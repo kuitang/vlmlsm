@@ -146,6 +146,7 @@ function tf = IsMonge(M)
 %
 
 tf = true;
+TEN_EPS = 2.2204e-15;
 
 N = length(M);
 for n = 1:N
@@ -155,8 +156,11 @@ for n = 1:N
     maxCol = maxCol - 1;
     for ii=1:maxRow
         for kk=1:maxCol
-            tf =  ( V(ii,kk) + V(ii+1,kk+1) <= V(ii, kk+1) + V(ii+1, kk) );
-            if ~tf, return; end
+            diff = V(ii,kk) + V(ii+1,kk+1) - V(ii, kk+1) - V(ii+1, kk);
+            if diff - 5 * TEN_EPS > 0
+                tf = false;
+                return
+            end            
         end
     end
 end

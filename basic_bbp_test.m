@@ -3,10 +3,10 @@ path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 nTrials = 10;
 
-nNodes = 16;
+nNodes = 1000;
 runJT = true;
-testTrees = false;
-checkMatlab = false;
+testTrees = true;
+checkMatlab = true;
 
 epsilon = 1e-2;
 
@@ -26,11 +26,12 @@ epsilon = 1e-2;
 %% Loop it
 for t = 1:nTrials
     %% Set up the problem
-    [theta, W] = makeProblem(nNodes);
-    
     if testTrees
+        [theta, W] = makeProblem(nNodes, -2, 1);
         T = randTree(nNodes);
         W = W .* T;
+    else
+        [theta, W] = makeProblem(nNodes, -0.5, 0);
     end
         
     %% Run the algorithms
@@ -113,11 +114,16 @@ if runJT
 end
 
 figure;
-plot(bkEdges, maxFlowTimes, bkEdges, betheTimes);
+[~, idxs] = sort(bkEdges);
+plot(bkEdges(idxs), maxFlowTimes(idxs), bkEdges(idxs), betheTimes(idxs));
 legend('Max Flow Time', 'Total Bethe Time');
 title('Runtime vs # of BK Edges');
 
 epsilonTxt = [' for \epsilon = ' num2str(epsilon)];
+
+figure;
+hist(double(bkEdges));
+title(['Number of BK Edges' epsilonTxt]);
 
 if runJT
     figure;
