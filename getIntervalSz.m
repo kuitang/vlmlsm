@@ -1,7 +1,8 @@
-function [intervalSz] = getIntervalSz(A, B, W, epsilon)
+function [intervalSz, varargout] = getIntervalSz(A, B, W, epsilon)
 % getIntervalSz Calculate the required interval size for epsilon accuracy
 %
 % intervalSz = getIntervalSz(A, B, W, epsilon)    
+% [intervalSz, lambda, theoryBound] = getIntervalSz(A, B, W, epsilon)
     nNodes = size(W, 1);
     nEdges = nnz(W) / 2;
     
@@ -50,5 +51,13 @@ function [intervalSz] = getIntervalSz(A, B, W, epsilon)
 
     % Use the stupider bound
     density = (nnz(W) + nNodes) / numel(W);
-    intervalSz = sqrt(2*epsilon / (nNodes * Omega * sqrt(density)));
+    Lambda = nNodes * Omega * sqrt(density);                                   
+    if nargout >= 2 % output lambda
+        varargout{1} = Lambda;
+    end
+    if nargout >= 3 % output theoryBound (last page)
+        varargout{2} = (nNodes^6 * Omega^(3/2) * density^(3/4) / (sqrt(8) * epsilon^(3/2)));
+    end
+    intervalSz = sqrt(2*epsilon / (Lambda));
+    
 end

@@ -223,7 +223,7 @@ namespace mexcpp {
       //mexPrintf("field: pmm = %x, ind = %d, fnum = %d\n", pmm, ind, fnum);
       mxArray *f = mxGetFieldByNumber(pmm, ind, fnum);
       if (f == 0) {
-        mexErrMsgIdAndTxt("mexcpp:field", "Field %d of index %d of class matrix %lx was invalid.\n", fnum, ind, pmm);
+        mexErrMsgIdAndTxt("mexcpp:field", "Field %d of index %d of matrix %lx was invalid.\n", fnum, ind, pmm);
       }
       return f;
     }
@@ -232,7 +232,7 @@ namespace mexcpp {
       //mexPrintf("field: pmm = %x, ind = %d, fname = %s\n", pmm, ind, fname);
       mxArray *f = mxGetField(pmm, ind, fname);
       if (f == 0) {
-        mexErrMsgIdAndTxt("mexcpp:field", "Field %s of index %d of class matrix %lx was invalid.\n", fname, ind, pmm);
+        mexErrMsgIdAndTxt("mexcpp:field", "Field %s of index %d of matrix %lx was invalid.\n", fname, ind, pmm);
       }
       return f;
     }
@@ -301,6 +301,9 @@ namespace mexcpp {
     template <class S> void setS(mwIndex fi, S x) {
       (*this)[0].set(fi, x);
     }
+
+    template <class T, class F> T get(F fn) { return (*this)[0].get<T>(fn); }
+    template <class S, class F> S getS(F fn) { return (*this)[0].getS<S>(fn); }
   };
 
   // Compressed sparse column sparse matrix (MATLAB's format)

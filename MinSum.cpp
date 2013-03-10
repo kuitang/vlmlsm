@@ -283,12 +283,7 @@ MinStats MinSum::minimize(std::vector<int> &x, double *energy, double &maxFlow) 
     }
   }
   stats.nBKEdges = stats.nZInfEdges + stats.nPairEdges;
-
-  mexPrintf("%s:%d -- stats.nBKNodes = %d\n", __FILE__, __LINE__, stats.nBKNodes);
-  mexPrintf("%s:%d -- stats.nBKEdges = %d\n", __FILE__, __LINE__, stats.nBKEdges);
-
   stats.BKConstructTime = toc(constructBegin);
-
 
   /////////////////////////////////////////////////
   // Run maxflow

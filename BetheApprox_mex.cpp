@@ -46,6 +46,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   double      epsilon = scalar<double>(pIn[2]);
   StructMat   opts                       (pIn[3]);
 
+
   int nNodes = theta.length;
   mwSize nEdges = W.nzMax / 2; // symmetric mat
 
@@ -73,11 +74,16 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   double alpha[W.nzMax];
 
   // default thresh
-  double bbThresh = 0.002;
-  int maxIter = 50000; // something really huge
+  double bbThresh = 0; // maybe change to 10-4 or something? Will make Mooij slower.
+  int maxIter = 1000; // something really huge
+  bool useMooij = opts.getS<bool>("useMooij");
 
   clock_t makeMinSumBegin = tic();
-  propogateBetheBound(nNodes, theta, W, bbThresh, maxIter, A, B, alpha);
+  if (useMooij) {
+    mooijBound(nNodes, theta, W, bbThresh, maxIter, A, B, alpha);
+  } else {
+    propogateBetheBound(nNodes, theta, W, bbThresh, maxIter, A, B, alpha);
+  }
   double intervalSz = getIntervalSz(nNodes, A, B, W, alpha, epsilon);
   misc.setS("intervalSz", intervalSz);
 

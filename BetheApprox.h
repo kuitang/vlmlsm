@@ -70,6 +70,15 @@ bool propogateBetheBound(size_t nNodes,
                          double *B,
                          double *alpha);
 
+bool mooijBound(size_t nNodes,
+                const double *theta,
+                const cscMatrix &W,
+                double thresh,
+                int maxIter,
+                double *A, // outputs
+                double *B,
+                double *alpha);
+
 double getIntervalSz(size_t nNodes,
                      const double *A,
                      const double *B,

@@ -3,6 +3,22 @@
 #include <limits>
 #include "mex.h"
 
+double TEN_EPS = 2.2204e-15;
+void fixBounds(size_t nNodes, double *A, double *B) {
+  // Fix small numerical issues where the bounds cross
+  for (int n = 0; n < nNodes; n++) {
+    double diff = 1 - B[n] - A[n];
+    if (diff < -TEN_EPS) {
+      mexErrMsgIdAndTxt("BetheApprox.cpp:fixBounds", "A, B bound crossed; invalid\n");
+    } else if (diff < 0) {
+      // Tie them to the average
+      double m = 0.5 * (A[n] + 1 - B[n]);
+      A[n] = m;
+      B[n] = 1 - m;
+    }
+  }
+}
+
 // Return true if convergence threshold met
 // Output are A, B, and alpha, which must be preallocated!
 bool propogateBetheBound(size_t nNodes,
@@ -18,7 +34,7 @@ bool propogateBetheBound(size_t nNodes,
     posW[j] = 0;
     negW[j] = 0;
 
-    for (int idx = W.jc[j]; idx < W.jc[j+1]; idx++) {
+    for (size_t idx = W.jc[j]; idx < W.jc[j+1]; idx++) {
       double w = W.pr[idx];
       if (w > 0) {
         posW[j] += w;
@@ -65,12 +81,149 @@ bool propogateBetheBound(size_t nNodes,
                 oneNormConverged(nNodes, B, oldB, thresh);
   }
 
+  fixBounds(nNodes, A, B);
   return converged;
 }
+
+bool mooijBound(size_t nNodes,
+                const double *theta,
+                const cscMatrix &W,
+                double thresh,
+                int maxIter,
+                double *A, // outputs
+                double *B,
+                double *alpha) {
+
+  ////////////////////////////////////////////////////////
+  // Convert to {-1, +1} format.
+  ////////////////////////////////////////////////////////
+  // Jpr is the entries of the same sparsity pattern as W.
+  double Jpr[W.nzMax];
+  std::transform(W.pr, W.pr + W.nzMax, Jpr, [](double x) { return 0.25 * x;});
+
+  double eta[nNodes];
+  for (int n = 0; n < nNodes; n++) {
+    eta[n] = 0.5 * theta[n];
+    for (size_t idx = W.jc[n]; idx < W.jc[n+1]; idx++) {
+      eta[n] += Jpr[idx];
+      //mexPrintf("%s:%d eta[%d] = %g; Jpr[%d] = %g\n", __FILE__, __LINE__, n, eta[n], idx, Jpr[idx]);
+    }
+  }
+
+  ////////////////////////////////////////////////////////
+  // Propagate bounds on the cavity fields
+  ////////////////////////////////////////////////////////
+  double etaLo[W.nzMax];
+  double etaHi[W.nzMax];
+  std::fill_n(etaLo, W.nzMax, std::numeric_limits<double>::lowest());
+  std::fill_n(etaHi, W.nzMax, std::numeric_limits<double>::max());
+
+  double etaLoNew[W.nzMax];
+  double etaHiNew[W.nzMax];
+
+  double a, b;
+  bool converged = false;
+  int t;
+  for (t = 0; t < maxIter; t++) {
+    for (size_t j = 0; j < nNodes; j++) {
+      for (size_t outIdx = W.jc[j]; outIdx < W.jc[j+1]; outIdx++) {
+        size_t i = W.ir[outIdx];
+
+        etaLoNew[outIdx] = eta[i];
+        etaHiNew[outIdx] = eta[i];
+
+        for (size_t inIdx = W.jc[i]; inIdx < W.jc[i+1]; inIdx++) {
+          size_t k = W.ir[inIdx];
+          if (k == j) { continue; }
+
+
+          a = atanh(tanh(Jpr[inIdx]) * tanh(etaLo[inIdx]));
+          b = atanh(tanh(Jpr[inIdx]) * tanh(etaHi[inIdx]));
+
+          etaLoNew[outIdx] += std::min(a, b);
+          etaHiNew[outIdx] += std::max(a, b);
+
+          /*
+          if (t < 3) {
+            mexPrintf("%s:%d i = %d, j = %d, k = %d\n", __FILE__, __LINE__, i, j, k);
+            mexPrintf("%s:%d a = %g, b = %g, etaLo[%d] = %g, etaHi[%d] = %g, etaLoNew[%d] = %g, etaHiNew[%d] = %g\n", __FILE__, __LINE__, a, b, inIdx, etaLo[inIdx], inIdx, etaHi[inIdx], outIdx, etaLoNew[outIdx], outIdx, etaHiNew[outIdx]);
+          }
+          */
+        }
+      }
+    }
+
+    // Check for convergence before the obligatory copy
+    // (This might be a bit slow)
+    if (oneNormConverged(W.nzMax, etaLoNew, etaLo, thresh) &&
+        oneNormConverged(W.nzMax, etaHiNew, etaHi, thresh)) {
+      converged = true;
+      break;
+    }
+
+    std::copy(etaLoNew, etaLoNew + W.nzMax, etaLo);
+    std::copy(etaHiNew, etaHiNew + W.nzMax, etaHi);
+
+    /*
+    if (t < 3) {
+      for (int n = 0; n < W.nzMax; n++) {
+        mexPrintf("%s:%d %g %g %g %g\n", __FILE__, __LINE__, etaLo[n], etaHi[n], etaLoNew[n], etaHiNew[n]);
+      }
+    }
+    */
+  }
+
+
+  // debug
+  /*
+  for (size_t idx = 0; idx < W.nzMax; idx++) {
+    mexPrintf("%s:%d etaLo[%d] = %g; etaHi[%d] = %g\n", __FILE__, __LINE__, idx, etaLo[idx], idx, etaHi[idx]);
+  }
+  */
+
+  ////////////////////////////////////////////////////////
+  // Calculate beliefs in tanh parameterization
+  ////////////////////////////////////////////////////////
+  double betaLo[nNodes];
+  double betaHi[nNodes];
+  std::copy(eta, eta + nNodes, betaLo);
+  std::copy(eta, eta + nNodes, betaHi);
+
+  for (size_t j = 0; j < nNodes; j++) {
+    for (size_t idx = W.jc[j]; idx < W.jc[j+1]; idx++) {
+      size_t i = W.ir[idx];
+      //mexPrintf("%s:%d i = %d, j = %d\n", __FILE__, __LINE__, i, j);
+
+      a = atanh(tanh(Jpr[idx]) * tanh(etaLo[idx]));
+      b = atanh(tanh(Jpr[idx]) * tanh(etaHi[idx]));
+      betaLo[j] += std::min(a, b);
+      betaHi[j] += std::max(a, b);
+    }
+  }
+
+  /*
+  for (size_t j = 0; j < nNodes; j++) {
+    mexPrintf("%s:%d betaLo[%d] = %g; betaHi[%d] = %g\n", __FILE__, __LINE__, j, betaLo[j], j, betaHi[j]);
+  }
+  */
+
+
+  ////////////////////////////////////////////////////////
+  // Calculate A,B bounds on pseudomargina
+  ////////////////////////////////////////////////////////
+  std::transform(betaLo, betaLo + nNodes, A, [](double x) { return 0.5 * (tanh(x) + 1); });
+  std::transform(betaHi, betaHi + nNodes, B, [](double x) { return 1 - (0.5 * (tanh(x) + 1)); });
+
+  fixBounds(nNodes, A, B);
+  return converged;
+}
+
+
 
 inline int degree(const cscMatrix &W, int j) {
   return W.jc[j+1] - W.jc[j];
 }
+
 
 // For node n, find points in the interval [A[n], 1 - B[n]] such that the
 // distance between two consecutive points is at most intervalSz.
@@ -94,6 +247,8 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
   // the left endpoint, hence the max.
   for (size_t n = 0; n < nNodes; n++) {
     double intervalLength = 1 - B[n] - A[n];
+    mxAssert(intervalLength >= 0, "Bounds failed.");
+
     size_t points = std::max((int) std::ceil(intervalLength / intervalSz), 1) + 1;
     if (points > maxPoints) { maxPoints = points; }
     totPoints += points;
@@ -112,7 +267,6 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
   for (size_t n = 0; n < nNodes; n++) {
     m.jc[n] = ind;
     size_t k = 0;
-    mxAssert(A[n] < 1 - B[n], "bounds failed.");
 
     for (double q = A[n]; q < 1 - B[n]; q += intervalSz) {
       mxAssert(ind < totPoints, "You fucked up calculating totPoints!");

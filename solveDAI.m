@@ -1,6 +1,6 @@
 function [ logZ, joint, oneMarginals, twoMarginals, daiTime ] = solveDAI(theta, W, method, daiOpts)
 % solveDAI Find marginals of problem in Eq 1 by libDAI's methods
-%   [oneMarginals, twoMarginals, joint, logZ] = solveJTree(theta, W)
+%   [ logZ, joint, oneMarginals, twoMarginals, daiTime ] = solveDAI(theta, W, method, daiOpts)
 %
 %   theta - unary potentials
 %   W     - (Sparse) pairwise interactions; only upper triangular taken

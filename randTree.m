@@ -1,14 +1,20 @@
-function [ T ] = randTree( nNodes )
-% T = randTree(nNodes)
+function [ T ] = randTree( nNodes, nLoops )
+% T = randTree(nNodes, nLoops)
 %
 % Create a random uniform spanning tree T of nNodes nodes with Wilson's
-% algorithm. Simplified for unweighted complete graph.
+% algorithm. Optionally add nLoops random edges.
+%
+% Simplified for unweighted complete graph.
 %
 % T is a sparse nNodes x nNodes adjacency matrix.
 %
 % References
 % [1] David Bruce Wilson, "Generating Random Spanning Trees More Quickly
 %     than the Cover Time" STOC '96 doi>10.1145/237814.237880
+
+    if nargin == 1
+        nLoops = 0;
+    end
 
     r = randsample(nNodes, 1);
     parents = zeros(nNodes, 1);
@@ -19,7 +25,8 @@ function [ T ] = randTree( nNodes )
         while ~inTree(u)
             pop = 1:nNodes;
             pop(u) = [];
-            parents(u) = randsample(pop, 1);
+            ri = randi(nNodes - 1);
+            parents(u) = pop(ri);
             u = parents(u);
         end
         u = i;
@@ -29,14 +36,28 @@ function [ T ] = randTree( nNodes )
         end
     end
     
-    % the root does not have a parent
-    parentsIdxs = find(parents);
-    parentsNz   = parents(parentsIdxs);
-    wvec        = true(nNodes - 1, 1);
-    
+    % the root does not have a parent    
+    parentsIvec = find(parents);
+    parentsJvec = parents(parentsIvec);
+    wvec        = true(nNodes + nLoops - 1, 1);
+
+    % Randomly add loops to the tree
+    for lp = 1:treeLoops
+
+        % Find an edge we don't already have
+        ij = randi(nNodes, 1, 2);   
+        while any(parentsIvec(ij(1))) || any(parentsJvec(ij(2)))        
+            ij = randi(nNodes, 1, 2);
+        end
+        
+        parentsIvec(end+1) = ij(1);
+        parentsJvec(end+1) = ij(2);
+        
+    end    
+
     % Symmetrize and sparsify
-    T = sparse(vertcat(parentsIdxs, parentsNz), ...
-               vertcat(parentsNz, parentsIdxs), ...
+    T = sparse(vertcat(parentsIvec, parentsJvec), ...
+               vertcat(parentsJvec, parentsIvec), ...
                vertcat(wvec, wvec));
 end
 
