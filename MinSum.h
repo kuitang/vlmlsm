@@ -18,8 +18,13 @@ struct Node {
   Node() : nStates(0), vals(nullptr) { }
   Node(int64_t nStates_, double *vals_) : nStates(nStates_), vals(vals_) { }
 
-  Node(const Node &other) = delete;
-  Node &operator=(const Node &other) = delete;
+  Node(const Node &other) : nStates(other.nStates), vals(other.vals) { } 
+  Node &operator=(const Node &other) {
+    nStates = other.nStates;
+    vals = other.vals;
+
+    return *this;
+  }
 
   double &operator()(int i) {
     mxAssert(i >= 0 && i < nStates, "Node operator() out of bounds");
@@ -38,8 +43,14 @@ struct Potential {
   Potential() : nLo(0), nHi(0), vals(nullptr) { }
   Potential(int nLo_, int nHi_, double *vals_) : nLo(nLo_), nHi(nHi_), vals(vals_) { }
 
-  //Potential(const Potential &other) = delete;
-  Potential &operator=(const Potential &other) = delete;
+  Potential(const Potential &other) : nLo(other.nLo), nHi(other.nHi), vals(other.vals) { }
+  Potential &operator=(const Potential &other) {
+    nLo = other.nLo;
+    nHi = other.nHi;
+    vals = other.vals;
+
+    return *this;
+  }
 
   // Column major
   double &operator()(int lo, int hi) {
@@ -53,7 +64,7 @@ static_assert(sizeof(Potential) % sizeof(double) == 0, "Potential cannot be stor
 struct Edge {
   // If E \in edges[i], then E.dst = i.
   int dst;
-  const bool srcHigher;
+  bool srcHigher;
   double w;
   Potential *potential;
 
@@ -62,6 +73,16 @@ struct Edge {
     srcHigher(srcHigher_),
     w(w_),
     potential(potential_) { }
+
+  Edge(const Edge &other) : dst(other.dst), srcHigher(other.srcHigher), w(other.w), potential(other.potential) { }
+  Edge &operator=(const Edge &other) {
+    dst = other.dst;
+    srcHigher = other.srcHigher;
+    w = other.w;
+    potential = other.potential;
+
+    return *this;
+  }
 
   // Evaluate the potential, transposing if necessary.
   double &p(size_t srcState, size_t dstState) const {

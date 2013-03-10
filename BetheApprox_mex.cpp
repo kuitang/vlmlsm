@@ -74,7 +74,7 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   double alpha[W.nzMax];
 
   // default thresh
-  double bbThresh = 0; // maybe change to 10-4 or something? Will make Mooij slower.
+  double bbThresh = 0.002; // maybe change to 10-4 or something? Will make Mooij slower.
   int maxIter = 1000; // something really huge
   bool useMooij = opts.getS<bool>("useMooij");
 

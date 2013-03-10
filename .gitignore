@@ -1,6 +1,7 @@
 a.out
 *.tar*
 *.mexmaci64
+*.mexa64
 *.o
 *.mat
 *~

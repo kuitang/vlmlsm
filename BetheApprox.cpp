@@ -53,7 +53,7 @@ bool propogateBetheBound(size_t nNodes,
   double oldA[nNodes], oldB[nNodes];
   double L, U;
 
-  for (int iter = 0; !converged; iter++) {
+  for (int t = 0; !converged && t < maxIter; t++) {
     std::copy(A, A + nNodes, oldA);
     std::copy(B, B + nNodes, oldB);
 
