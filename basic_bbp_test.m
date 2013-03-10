@@ -1,7 +1,7 @@
 %% Setup
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
-nTrials = 1;
+nTrials = 100;
 
 %% Problem
 %nNodes = 10000;
@@ -16,7 +16,7 @@ ta = -2;
 tb = 2;
 wb = 1;
 
-drawFig = false;
+drawFigs = false;
 
 density = 1;
 
@@ -60,7 +60,7 @@ for t = 1:nTrials
     
     %% Our BBP
     tic;
-    [logZ, oneMarg(:,t,1), twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, opts);        
+    [logZ, oneMarg(:,t,1), twoMarg, misc] = BetheApprox_debug_mex(theta, W, epsilon, opts);        
     betheTimes(t,1) = toc;    
     bkEdges(t,1) = misc.nBKEdges;
     maxFlowTimes(t,1)  = misc.BKMaxFlowTime;

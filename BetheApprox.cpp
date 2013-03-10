@@ -94,6 +94,24 @@ bool mooijBound(size_t nNodes,
                 double *B,
                 double *alpha) {
 
+  // copy-pasted alpha calculation (rest of code relies on it)
+  double posW[nNodes], negW[nNodes];
+  for (size_t j = 0; j < nNodes; j++) {
+    posW[j] = 0;
+    negW[j] = 0;
+
+    for (size_t idx = W.jc[j]; idx < W.jc[j+1]; idx++) {
+      double w = W.pr[idx];
+      if (w > 0) {
+        posW[j] += w;
+      } else {
+        negW[j] -= w;
+      }
+
+      alpha[idx] = exp(fabs(w)) - 1;
+    }
+  }
+
   ////////////////////////////////////////////////////////
   // Convert to {-1, +1} format.
   ////////////////////////////////////////////////////////
@@ -250,6 +268,7 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
     mxAssert(intervalLength >= 0, "Bounds failed.");
 
     size_t points = std::max((int) std::ceil(intervalLength / intervalSz), 1) + 1;
+    mxAssert(points >= 2, "Did not create at least two states.");
     if (points > maxPoints) { maxPoints = points; }
     totPoints += points;
   }
@@ -281,6 +300,7 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
     m.pr[ind] = 1 - B[n];
     ind++;
   }
+  mxAssert(ind == totPoints, "Point calculation failed.");
   // Last column; one-past-end
   // We don't need to add 1, because the ind++ above means that at the last
   // iterations, we were already one past the end.
