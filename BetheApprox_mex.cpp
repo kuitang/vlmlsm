@@ -93,7 +93,9 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
 
   // TODO: Principled estimation of memory; not just 10MM.
   // 2 gigs
-  const size_t MAX_DOUBLES = 200000000;
+  //const size_t MAX_DOUBLES = 200000000;
+  // 16 gigs. Diminishing marginals returns to using more.
+  const size_t MAX_DOUBLES = 2147483648;
   MinSum m(nNodes, mexErrMsgTxt, mexPrintf, 10000000, MAX_DOUBLES);
   makeBetheMinSum(nNodes, theta, W, A, B, alpha, intervalSz, m);
 
