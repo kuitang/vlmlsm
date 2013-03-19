@@ -9,7 +9,7 @@
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 nTrials = 100;
-
+randGraph = false;
 nNodes = 4;
         
 printStats = true;
@@ -63,46 +63,61 @@ for t = 1:nTrials
 %     eta = th * ones(nNodes,1);  
 
     % Random graphs, instead of uniform potentials. Zero local potential.
-    accepted = false;
-    while ~accepted
-        j = 0;
-        eta = j * ones(nNodes, 1);
-        sigma = 0.9;
+    if randGraph
+        % Generate random graph according to MK Fig 5, but flipped to
+        % positive edge weights
+        accepted = false;
+        while ~accepted
+            j = 0;
+            eta = j * ones(nNodes, 1);
+            sigma = 0.9;
 
-        J = abs(normrnd(0.5 + j, sigma, nNodes, nNodes));
-        % Symmetrize;
-        J = 0.5 * (J + J');
-        % Remove diagonal
-        J = J - diag(diag(J));
+            J = abs(normrnd(0.5 + j, sigma, nNodes, nNodes));
+            % Symmetrize;
+            J = 0.5 * (J + J');
+            % Remove diagonal
+            J = J - diag(diag(J));
 
+            % convert from (-1,+1) to (0,1) convention
+            theta = 2 * eta - 2 * sum(J,2); % zeta is called theta in the paper
+            W = sparse(4 * J);
+
+
+            if printStats            
+                %% Print stats
+                [A, B, ~] = BBP(theta, W, 0.002, 1000)
+                [isz, kappa, theorybound] = getIntervalSz(A, B, W, 1e-2);
+                1 - B - A;
+                gaps = 1 - B - A;
+                totalGap = sum(gaps(:));
+                nIntervals = totalGap / isz
+
+                [Am, Bm] = bpbound(nNodes, theta, W, 1000)
+                [iszm, kappa, theoryboundm] = getIntervalSz(Am, Bm, W, 1e-2)
+                mGaps = 1 - Bm - Am;
+                totalMGaps = sum(mGaps(:));
+                nMIntervals = totalMGaps / iszm
+
+                nIntervalRatio = nMIntervals / nIntervals                
+            end
+
+            if nMIntervals < nIntervalCap
+                accepted = true;
+                disp('Interval gap reached. Proceeding.');
+            end
+        end
+    else
+        %% Use the (eta, j) = (0, 1) graph
+        eta = 0;
+        J   = ones(nNodes);
+        J   = J - diag(diag(J));
+        
         % convert from (-1,+1) to (0,1) convention
         theta = 2 * eta - 2 * sum(J,2); % zeta is called theta in the paper
-        W = sparse(4 * J);
-
-        problems{t} = struct('eta', eta, 'theta', theta, 'W', W);        
-
-        if printStats
-            [A, B, ~] = BBP(theta, W, 0.002, 1000)
-            [isz, kappa, theorybound] = getIntervalSz(A, B, W, 1e-2);
-            1 - B - A;
-            gaps = 1 - B - A;
-            totalGap = sum(gaps(:));
-            nIntervals = totalGap / isz
-
-            [Am, Bm] = bpbound(nNodes, theta, W, 1000)
-            [iszm, kappa, theoryboundm] = getIntervalSz(Am, Bm, W, 1e-2)
-            mGaps = 1 - Bm - Am;
-            totalMGaps = sum(mGaps(:));
-            nMIntervals = totalMGaps / iszm
-
-            nIntervalRatio = nMIntervals / nIntervals                
-        end
-        
-        if nMIntervals < nIntervalCap
-            accepted = true;
-            disp('Interval gap reached. Proceeding.');
-        end
+        W = sparse(4 * J);        
     end
+    
+    problems{t} = struct('eta', eta, 'theta', theta, 'W', W);
     
     %% Run JTree and LBP
     [trueLogZ, ~, trueOneMarg(:,t), trueTwoMarg, JTTimes(t)] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');           
