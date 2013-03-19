@@ -43,6 +43,8 @@ JTTimes(nTrials) = 0;
 
 mooijOpts = struct('useMooij', true);
 
+nIntervalCap = 1e4;
+
 problems = cell(1, nTrials);
 
 successVec(nTrials) = false;
@@ -61,37 +63,45 @@ for t = 1:nTrials
 %     eta = th * ones(nNodes,1);  
 
     % Random graphs, instead of uniform potentials. Zero local potential.
-    j = 0;
-    eta = j * ones(nNodes, 1);
-    sigma = 0.9;
-    
-    J = abs(normrnd(0.5 + j, sigma, nNodes, nNodes));
-    % Symmetrize;
-    J = 0.5 * (J + J');
-    % Remove diagonal
-    J = J - diag(diag(J));
+    accepted = false;
+    while ~accepted
+        j = 0;
+        eta = j * ones(nNodes, 1);
+        sigma = 0.9;
 
-    % convert from (-1,+1) to (0,1) convention
-    theta = 2 * eta - 2 * sum(J,2); % zeta is called theta in the paper
-    W = sparse(4 * J);
+        J = abs(normrnd(0.5 + j, sigma, nNodes, nNodes));
+        % Symmetrize;
+        J = 0.5 * (J + J');
+        % Remove diagonal
+        J = J - diag(diag(J));
 
-    problems{t} = struct('eta', eta, 'theta', theta, 'W', W);
+        % convert from (-1,+1) to (0,1) convention
+        theta = 2 * eta - 2 * sum(J,2); % zeta is called theta in the paper
+        W = sparse(4 * J);
 
-    if printStats
-        [A, B, ~] = BBP(theta, W, 0.002, 1000)
-        [isz, kappa, theorybound] = getIntervalSz(A, B, W, 1e-2);
-        1 - B - A;
-        gaps = 1 - B - A;
-        totalGap = sum(gaps(:));
-        nIntervals = totalGap / isz
+        problems{t} = struct('eta', eta, 'theta', theta, 'W', W);        
 
-        [Am, Bm] = bpbound(nNodes, theta, W, 1000)
-        [iszm, kappa, theoryboundm] = getIntervalSz(Am, Bm, W, 1e-2)
-        mGaps = 1 - Bm - Am;
-        totalMGaps = sum(mGaps(:));
-        nMIntervals = totalMGaps / iszm
+        if printStats
+            [A, B, ~] = BBP(theta, W, 0.002, 1000)
+            [isz, kappa, theorybound] = getIntervalSz(A, B, W, 1e-2);
+            1 - B - A;
+            gaps = 1 - B - A;
+            totalGap = sum(gaps(:));
+            nIntervals = totalGap / isz
 
-        nIntervalRatio = nMIntervals / nIntervals
+            [Am, Bm] = bpbound(nNodes, theta, W, 1000)
+            [iszm, kappa, theoryboundm] = getIntervalSz(Am, Bm, W, 1e-2)
+            mGaps = 1 - Bm - Am;
+            totalMGaps = sum(mGaps(:));
+            nMIntervals = totalMGaps / iszm
+
+            nIntervalRatio = nMIntervals / nIntervals                
+        end
+        
+        if nMIntervals < nIntervalCap
+            accepted = true;
+            disp('Interval gap reached. Proceeding.');
+        end
     end
     
     %% Run JTree and LBP
