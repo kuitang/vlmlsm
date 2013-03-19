@@ -252,6 +252,8 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
   size_t totPoints = 0;
   size_t maxPoints = 0;
 
+  mxAssert(intervalSz > 0, "intervalSz must be positive!");
+
   // Number of endpoints is ceil(intervalLength / intervalSz) + 1 (for endpoint)
   //
   // i.e.
