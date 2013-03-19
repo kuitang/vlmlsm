@@ -125,3 +125,20 @@ title(['Times vs. \kappa, n = ' num2str(nNodeVec(end))]);
 % NOTE: By inspection, intervalsize is NOT interesting; it varies by only
 % half its magnitude. (Thus, the curvature (Kappa) bound seems to account 
 % for both a slightly smaller interval and more intervals?)
+
+%% BBP vs. Mooij widths
+gapRatios(nTrials) = 0;
+for t = 1:nTrials
+    gapRatios(t) = sum(vec(ABgap(:,t,1))) / sum(vec(ABgap(:,t,2)));
+end
+
+figure
+hist(gapRatios);
+title(['AB gap ratio (BBP / Mooij) over ' num2str(nTrials) ' trials']);
+
+% Time tradeoff plot
+figure;
+[xs, ix] = sort(betheTimes(:,1));
+plot(xs, gapRatios(ix));
+title('BBP/Mooij width vs. Bethe time');
+set(gca, 'XScale', 'Log');
