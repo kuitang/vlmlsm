@@ -16,8 +16,6 @@ ta = -2;
 tb = 2;
 wb = 1;
 
-drawFigs = false;
-
 density = 1;
 
 epsilon = 1e-2;
@@ -173,99 +171,4 @@ betheTimes
 lbpTimes
 if runJT
     JTTimes
-end
-
-
-if drawFigs
-    figure;
-    [~, idxs] = sort(bkEdges);
-    plot(bkEdges(idxs), maxFlowTimes(idxs), bkEdges(idxs), betheTimes(idxs));
-    legend('Max Flow Time', 'Total Bethe Time');
-    title('Runtime vs # of BK Edges');
-
-    epsilonTxt = [' for \epsilon = ' num2str(epsilon)];
-
-    figure;
-    hist(double(bkEdges));
-    title(['Number of BK Edges' epsilonTxt]);
-
-    if runJT
-        figure;
-        hist(totDiff);
-        title(['Average error of one-marginals' epsilonTxt]);
-        
-        figure;
-        hist(trueLogZGaps);
-        title(['True logZ - Approximate Bethe logZ ' epsilonTxt]);
-
-        figure;
-        hist(lbpLogZGaps);
-        title(['LBP logZ - Approximate Bethe logZ ' epsilonTxt]);
-    end
-
-    %% Calculations
-    lambdas(nTrials) = 0;
-    for t = 1:nTrials
-        [~, lambdas(t), theoryBounds(t)] = getIntervalSz(A(:,t),B(:,t), W, epsilon);
-    end
-
-    [~, ix] = sort(lambdas);
-    xs = lambdas(ix);
-
-    %% Could easily change for time by parameterizing a few things.
-    figure;
-    semilogx(xs, betheTimes(ix));
-    title('Runtime vs Lambda');
-    xlabel('Lambda');
-    ylabel('Runtime');
-
-    %%
-    figure;
-    semilogx(xs, trueLogZGaps(ix));
-    title('True logZ - Bethe logZ vs Lambda');
-    xlabel('Lambda');
-    ylabel('True logZ - Bethe logZ');
-
-    figure;
-    semilogx(xs, lbpLogZGaps(ix));
-    title('LBP logZ - Bethe logZ vs Lambda');
-    xlabel('Lambda');
-    ylabel('LBP logZ - Bethe logZ');
-
-    figure;
-    semilogx(xs, totDiff(ix));
-    title('Average error of one-marginals vs Lambda');
-    xlabel('Lambda');
-    ylabel('Average error of one-marginals');
-
-    %%
-    figure;
-    plot(xs, 1e-10*theoryBounds(ix), xs, betheTimes(ix));
-    title('Runtime and Theoretical bound vs Lambda');
-    xlabel('Lambda');
-    ylabel('Theoretical bound/Actual runtime');
-    legend('Theoretical bound', 'Actual runtime');
-
-    %% Scaling plots
-    figure;
-    scatter(sum(ABgap, 1), betheTimes)
-    title('Runtime vs sum [A 1-B] gaps');
-    xlabel('Sum [A 1-B] Gap');
-    ylabel('Runtime');
-
-    figure;
-    scatter(intervalSzs, betheTimes);
-    title('Runtime vs interval sizes');
-    xlabel('Interval size');
-    ylabel('Runtime');
-
-    figure;
-    scatter(lambdas, sum(ABgap, 1));
-    title('Sum [A 1-B] gaps vs Lambda');
-    xlabel('Lambda');
-    ylabel('Sum [A 1-B]');
-
-    % NOTE: By inspection, intervalsize is NOT interesting; it varies by only
-    % half its magnitude. (Thus, the curvature (Lambda) bound seems to account 
-    % for both a slightly smaller interval and more intervals?)
 end

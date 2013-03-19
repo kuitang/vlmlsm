@@ -1,41 +1,95 @@
+% Make instances of hard problems (the interior of the top triangle in
+% Mooij and Kappen 2005).
+%
+% LBP *will* fail in this regime, but both BBP and Mooij-Kappen bounds will
+% be very loose, and interval sizes for both problems will be tiny. Expect
+% long runtime.
+
 %% Setup
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
+nTrials = 10;
 
-N = 4;
-j = 1;
-t = 0;
+% trueLogZ
+epsilon = 0.1;
 
-J = j * ones(N,N);
-J = J - diag(diag(J));
-eta = t * ones(N,1);
+oneMarg(nNodes,nTrials) = 0;
+trueOneMarg(nNodes,nTrials) = 0;
+lbpOneMarg(nNodes,nTrials) = 0;
+A(nNodes,nTrials) = 0;
+B(nNodes,nTrials) = 0;
+ABgap(nNodes,nTrials) = 0;
+intervalSzs(nTrials) = 0;
 
-epsilon = 1e-1;
+% TODO: Test various sparsity patterns.
 
-% convert from (-1,+1) to (0,1) convention
-theta = 2 * eta - 2 * sum(J,2); % zeta is called theta in the paper
-W = sparse(4 * J);
+%% Zero-out some vectors... does it even matter?
+totDiff(nTrials) = 0;
+lbpTotDiff(nTrials) = 0;
 
-opts = struct();
+trueLogZGaps(nTrials) = 0;
+lbpLogZGaps(nTrials) = 0;
 
-[trueLogZ, ~, trueOneMarg, trueTwoMarg, JTTime] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');           
-disp(['JTree Finished']);
-[lbpLogZ, ~, lbpOneMarg, lbpTwoMarg, lbpTime] = solveDAI(theta, W, 'BP', '[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');
-disp(['LBP Finished']);
+betheTimes(nTrials) = 0;
+bkEdges(nTrials) = 0;
+maxFlowTimes(nTrials) = 0;
 
-fprintf(1, 'logZ: True: %g; LBP: %g\n', trueLogZ, lbpLogZ);
+lbpTimes(nTrials) = 0;
+JTTimes(nTrials) = 0;
 
-% [logZ, oneMarg, twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, opts);   
-% disp(['Bethe Finished']);
+mooijOpts = struct('useMooij', true);
 
-[A, B, ~] = BBP(theta, W, 0.002, 1000);
-[isz, lambda, theorybound] = getIntervalSz(A, B, W, 1e-2)
-1 - B - A
+problems = cell(1, nTrials);
 
-[Am, Bm] = bpbound(N, theta, W, 1000);
-[iszm, lambda, theoryboundm] = getIntervalSz(Am, Bm, W, 1e-2)
-1 - Bm - Am
+fn = ['results ' num2str(nNodes) ' nodes ' datestr(now, 0);];
+%% Loop
+for t = 1:nTrials
+    
+    %% Make problem
+    N = 4;
+        
+    % Draw (t,j) from the triangle (-1,2), (1,2), (0,1)
+    j  = unifrnd(1, 2)                          % Uniform coupling strength            
+    dt = j - 1;
+    th = unifrnd(-dt, dt)
+    
+    J = j * ones(N,N);
+    J = J - diag(diag(J));
+    eta = th * ones(N,1);  
 
-%'BP[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]'
+    % convert from (-1,+1) to (0,1) convention
+    theta = 2 * eta - 2 * sum(J,2); % zeta is called theta in the paper
+    W = sparse(4 * J);
 
-%fprintf(1, 'logZ: True: %g, Bethe: %g ; LBP: %g\n', trueLogZ, logZ, lbpLogZ);
+    problems{t} = struct('eta', eta, 'theta', theta, 'W', W);
+    
+    %% Run JTree and LBP
+    [trueLogZ, ~, trueOneMarg(:,t), trueTwoMarg, JTTimes(t)] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');           
+    disp(['JTree Finished']);
+    [lbpLogZ, ~, lbpOneMarg(:,t), lbpTwoMarg, lbpTime(t)] = solveDAI(theta, W, 'BP', '[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');
+    disp(['LBP Finished']);
+    
+    %% Run the time-killer
+    [mooijlogZ, oneMarg(:,t,2), twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, mooijOpts);            
+    fprintf(1, 'logZ: Mooij: %g; True: %g; LBP: %g\n', mooijlogZ, trueLogZ, lbpLogZ);       
+    
+    % [logZ, oneMarg, twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, opts);   
+    % disp(['Bethe Finished']);
+
+%     [A, B, ~] = BBP(theta, W, 0.002, 1000)
+%     [isz, kappa, theorybound] = getIntervalSz(A, B, W, 1e-2);
+%     1 - B - A;
+%     gaps = 1 - B - A;
+%     totalGap = sum(gaps(:));
+%     nIntervals = totalGap / isz
+% 
+%     [Am, Bm] = bpbound(N, theta, W, 1000)
+%     [iszm, kappa, theoryboundm] = getIntervalSz(Am, Bm, W, 1e-2)
+%     mGaps = 1 - Bm - Am;
+%     totalMGaps = sum(mGaps(:));
+%     nMIntervals = totalMGaps / iszm
+%     
+%     nIntervalRatio = nMIntervals / nIntervals
+
+
+end

@@ -13,8 +13,8 @@
 \begin{figure}
 \centering
 \includegraphics[width=0.49\linewidth, clip]{nodes_time}
-\includegraphics[width=0.49\linewidth, clip]{lambda_time}
-\caption{Actual runtime and theoretical bound  \emph{Left:} Scaling with respect to problem size. Each box plot represents 100 trials; top (blue) are theoretical bounds and bottom (green) are actual runtimes. \emph{Right:} Scaling with respect to curvature $\Lambda$. Solid line is theoretical bound, and scatter points are actual runtimes. Red, magenta, blue and 4, 8, 16 nodes respectively.} \label{fig:time}
+\includegraphics[width=0.49\linewidth, clip]{kappa_time}
+\caption{Actual runtime and theoretical bound  \emph{Left:} Scaling with respect to problem size. Each box plot represents 100 trials; top (blue) are theoretical bounds and bottom (green) are actual runtimes. \emph{Right:} Scaling with respect to instance parameter $\kappa$ (see text). Solid line is theoretical bound, and scatter points are actual runtimes. Red, magenta, blue and 4, 8, 16 nodes respectively.} \label{fig:time}
 \end{figure}
 \section{Experiments}
 \begin{figure}
@@ -23,6 +23,6 @@
 \caption{Average 1-norm deviations from truth (according to Junction Tree) in singleton marginals. Plot of 100 trials per size.} \label{fig:errors}
 \end{figure}
 
-We generated 100 complete graphs for $N = 4,8,16$ nodes, drawing each $\theta_i$ uniformly from $[-2,2]$, $W_{ij}$ uniformly from $[0, 1]$ and applying the de-biasing procedure in Section \fxwarning{Reference!}. We set $\varepsilon = 0.01$. As shown in Figure~\ref{fig:time}, our empirical worst-case results do indeed follow the shape of our theoretical bound, as a function of both problem size and curvature $\Lambda$. This suggests that the bound is in practice tight. In addition, as shown in Figure~\ref{fig:errors} the total 1-norm error of the singleton marginals remain low, even with our relatively course tolerance on the free energy term.
+We generated 100 complete graphs for $N = 4,8,16$ nodes, drawing each $\theta_i$ uniformly from $[-2,2]$, $W_{ij}$ uniformly from $[0, 1]$ and applying the de-biasing procedure in Section \fxwarning{Reference!}. We set $\varepsilon = 0.01$. To investigate the empirical tightness of the theoretical bound, we note that the instance-specific parameters, i.e. the the density of the Hessian and the size of the bound interval can be written as $\kappa = \Sigma^{3/4} \Omega^{3/2}$. We then plot the theoretical bound $O(n^6 \varepsilon^{-3/2} \kappa)$ as a function of both $n$ and $kappa$ in Figure~\ref{fig:time}. Our empirical worst-case results do indeed follow the shape of our theoretical bound. This suggests that the bound is in practice tight. In addition, as shown in Figure~\ref{fig:errors} the total 1-norm error of the singleton marginals remain low, even with our relatively course tolerance on the free energy term.
 
 \end{document}
