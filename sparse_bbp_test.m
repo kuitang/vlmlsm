@@ -16,7 +16,7 @@ ta = -2;
 tb = 2;
 wb = 1;
 
-density = log(nNodes);
+density = log(nNodes) / nNodes;
 
 epsilon = 1e-2;
 

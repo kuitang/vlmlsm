@@ -5,14 +5,16 @@
 % be very loose, and interval sizes for both problems will be tiny. Expect
 % long runtime.
 
+% nTrials and randGraph set from the environment!
+
 %% Setup
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
-nTrials = 100;
-randGraph = false;
 nNodes = 4;
         
 printStats = true;
+runBethe = true;
+runMooij = false;
 
 % trueLogZ
 epsilon = 0.1;
@@ -34,6 +36,9 @@ lbpTotDiff(nTrials) = 0;
 trueLogZGaps(nTrials) = 0;
 lbpLogZGaps(nTrials) = 0;
 
+% 1 - true, 2 - lbp, 3 - mooij, 4 - bethe
+logZ(nTrials, 4) = 0;
+
 betheTimes(nTrials) = 0;
 bkEdges(nTrials) = 0;
 maxFlowTimes(nTrials) = 0;
@@ -42,8 +47,9 @@ lbpTimes(nTrials) = 0;
 JTTimes(nTrials) = 0;
 
 mooijOpts = struct('useMooij', true);
+betheOpts = struct('useMooij', false);
 
-nIntervalCap = 1e4;
+nIntervalCap = 1e5;
 
 problems = cell(1, nTrials);
 
@@ -90,18 +96,18 @@ for t = 1:nTrials
                 1 - B - A;
                 gaps = 1 - B - A;
                 totalGap = sum(gaps(:));
-                nIntervals = totalGap / isz
+                nIntervals = totalGap / isz;
 
                 [Am, Bm] = bpbound(nNodes, theta, W, 1000)
                 [iszm, kappa, theoryboundm] = getIntervalSz(Am, Bm, W, 1e-2)
                 mGaps = 1 - Bm - Am;
                 totalMGaps = sum(mGaps(:));
-                nMIntervals = totalMGaps / iszm
+                nMIntervals = totalMGaps / iszm;
 
-                nIntervalRatio = nMIntervals / nIntervals                
+                nIntervalRatio = nMIntervals / nIntervals;
             end
 
-            if nMIntervals < nIntervalCap
+            if nMIntervals < nIntervalCap && nIntervals < nIntervalCap
                 accepted = true;
                 disp('Interval gap reached. Proceeding.');
             end
@@ -120,17 +126,21 @@ for t = 1:nTrials
     problems{t} = struct('eta', eta, 'theta', theta, 'W', W);
     
     %% Run JTree and LBP
-    [trueLogZ, ~, trueOneMarg(:,t), trueTwoMarg, JTTimes(t)] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');           
+    [logZ(t,1), ~, trueOneMarg(:,t), trueTwoMarg, JTTimes(t)] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');           
     disp(['JTree Finished']);
-    [lbpLogZ, ~, lbpOneMarg(:,t), lbpTwoMarg, lbpTime(t)] = solveDAI(theta, W, 'BP', '[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');
+    [logZ(t,2), ~, lbpOneMarg(:,t), lbpTwoMarg, lbpTime(t)] = solveDAI(theta, W, 'BP', '[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');
     disp(['LBP Finished']);
-    fprintf(1, 'logZ: True: %g; LBP: %g\n', trueLogZ, lbpLogZ);       
-    
+    %fprintf(1, 'logZ: True: %g; LBP: %g\n', logZ(t,1), logZ(t,2));       
     
     %% Run the time-killer
     try
-      [mooijlogZ, oneMarg(:,t,2), twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, mooijOpts);            
-      fprintf(1, 'logZ: Mooij: %g; True: %g; LBP: %g\n', mooijlogZ, trueLogZ, lbpLogZ);       
+      if runMooij
+        [logZ(t,3), oneMarg(:,t,2), twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, mooijOpts);            
+      end
+      if runBethe
+        [logZ(t,4), oneMarg(:,t,2), twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, betheOpts);
+      end
+      fprintf(1, 'logZ: True: %g, LBP: %g, Mooij: %g; Bethe: %g\n', logZ(t,:));
       successVec(t) = true;
     catch err
       disp(err)
@@ -139,7 +149,7 @@ for t = 1:nTrials
     
     % [logZ, oneMarg, twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, opts);   
     % disp(['Bethe Finished']);
-
-
-
 end
+
+save(fn);
+
