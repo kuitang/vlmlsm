@@ -298,8 +298,10 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
     size_t k = 0;
 
     for (double q = A[n]; q < 1 - B[n]; q += intervalSz) {
-      mexPrintf("%s:%d q = %g, A[n] = %g, 1 - B[n] = %g, intervalSz = %g, ind = %d, totPoints = %d\n",
-                __FILE__, __LINE__, q, A[n], 1 - B[n], intervalSz, ind, totPoints);
+      if (ind >= totPoints) {
+        mexPrintf("%s:%d totPoints fuckup message: q = %g, A[n] = %g, 1 - B[n] = %g, intervalSz = %g, ind = %d, totPoints = %d\n",
+                  __FILE__, __LINE__, q, A[n], 1 - B[n], intervalSz, ind, totPoints);
+      }
       mxAssert(ind < totPoints, "You fucked up calculating totPoints!");
       m.ir[ind] = k;
       m.pr[ind] = q;
