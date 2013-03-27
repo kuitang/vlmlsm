@@ -7,7 +7,8 @@ function [ theta, W ] = makeUnifProblem( nNodes, densityOrPattern, ta, tb, wb )
 % pattern. Because W is symmetrized, this just lower-bounds the sparsity.
 %
 % theta - nNodes x 1
-% W     - nNodes x nNodes sparsity with pattern sp
+% W     - nNodes x nNodes graph with given sparsity, augmented to be
+%         connected
 
     if issparse(densityOrPattern)
         W = sprand(densityOrPattern);

@@ -269,10 +269,18 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
     double intervalLength = 1 - B[n] - A[n];
     mxAssert(intervalLength >= 0, "Bounds failed.");
 
+    double dPoints = intervalLength / intervalSz;
+    if (dPoints > std::numeric_limits<int>::max()) {
+      mexErrMsgIdAndTxt("calcIntervals:tooManyPoints", "Interval size too small; discretization points too many. Aborting.");
+    }
+
     size_t points = std::max((int) std::ceil(intervalLength / intervalSz), 1) + 1;
     mxAssert(points >= 2, "Did not create at least two states.");
+
     if (points > maxPoints) { maxPoints = points; }
     totPoints += points;
+    //mexPrintf("%s:%d intervalLength = %g, intervalSz = %g, / = %g, points = %d, totPoints = %d\n",
+    //          __FILE__, __LINE__, intervalLength, intervalSz, intervalLength / intervalSz, points, totPoints);
   }
 
   // maxPoints x nNodes sparse matrix
@@ -290,6 +298,8 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
     size_t k = 0;
 
     for (double q = A[n]; q < 1 - B[n]; q += intervalSz) {
+      mexPrintf("%s:%d q = %g, A[n] = %g, 1 - B[n] = %g, intervalSz = %g, ind = %d, totPoints = %d\n",
+                __FILE__, __LINE__, q, A[n], 1 - B[n], intervalSz, ind, totPoints);
       mxAssert(ind < totPoints, "You fucked up calculating totPoints!");
       m.ir[ind] = k;
       m.pr[ind] = q;

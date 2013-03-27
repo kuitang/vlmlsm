@@ -59,8 +59,8 @@ function [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
             
             % Lemma 9: At every iteration, each element of A, B
             % monotonically increase   
-            assert(A(i) >= oldA(i));
-            assert(B(i) >= oldB(i));
+            %assert(A(i) >= oldA(i));
+            %assert(B(i) >= oldB(i));
         end
         
         dA = abs(A - oldA);

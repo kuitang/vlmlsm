@@ -1,4 +1,4 @@
-function [ T ] = randTree( nNodes, nLoops )
+function [ T ] = randTree( nNodes, excessDensity )
 % T = randTree(nNodes, nLoops)
 %
 % Create a random uniform spanning tree T of nNodes nodes with Wilson's
@@ -39,25 +39,11 @@ function [ T ] = randTree( nNodes, nLoops )
     % the root does not have a parent    
     parentsIvec = find(parents);
     parentsJvec = parents(parentsIvec);
-    wvec        = true(nNodes + nLoops - 1, 1);
+    wvec        = true(nNodes - 1, 1);
+    
+    T = sparse(parentsIvec, parentsJvec, wvec, nNodes, nNodes);    
+    Wexcess = sprand(~T) > excessDensity;
 
-    % Randomly add loops to the tree
-    for lp = 1:treeLoops
-
-        % Find an edge we don't already have
-        ij = randi(nNodes, 1, 2);   
-        while any(parentsIvec(ij(1))) || any(parentsJvec(ij(2)))        
-            ij = randi(nNodes, 1, 2);
-        end
-        
-        parentsIvec(end+1) = ij(1);
-        parentsJvec(end+1) = ij(2);
-        
-    end    
-
-    % Symmetrize and sparsify
-    T = sparse(vertcat(parentsIvec, parentsJvec), ...
-               vertcat(parentsJvec, parentsIvec), ...
-               vertcat(wvec, wvec));
+    T = T + Wexcess;
+    T = T | T';
 end
-
