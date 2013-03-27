@@ -4,7 +4,8 @@ addpath(path_to_dai);
 nTrials = 100;
 
 %% Problem
-runJT = true;
+% For nNodes = 50, this runs out of memory :(
+runJT = false;
 %testTrees = true;
 
 % Sparse pattern!
