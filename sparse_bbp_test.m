@@ -66,6 +66,7 @@ for t = 1:nTrials
     problems{t} = struct('theta', theta, 'W', W);
     
     
+    %%
     try
         %% LBP        
         [lbpLogZ, ~, lbpOneMarg, lbpTwoMarg, lbpTimes(t)] = solveDAI(theta, W, 'BP', '[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');
@@ -80,7 +81,7 @@ for t = 1:nTrials
         tic;
         
         
-        [logZ, oneMarg(:,t,1), twoMarg, misc] = BetheApprox_debug_mex(theta, W, epsilon, opts);
+        [logZ, oneMarg(:,t,1), twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, opts);
         
         
                 
@@ -130,7 +131,7 @@ for t = 1:nTrials
         
         
         
-        [mooijLogZ, oneMarg(:,t,2), twoMarg, misc] = BetheApprox_debug_mex(theta, W, epsilon, mooijOpts);
+        [mooijLogZ, oneMarg(:,t,2), twoMarg, misc] = BetheApprox_opt_mex(theta, W, epsilon, mooijOpts);
         
         
         

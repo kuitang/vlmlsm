@@ -42,7 +42,7 @@ function [ T ] = randTree( nNodes, excessDensity )
     wvec        = true(nNodes - 1, 1);
     
     T = sparse(parentsIvec, parentsJvec, wvec, nNodes, nNodes);    
-    Wexcess = sprand(~T) > excessDensity;
+    Wexcess = sprand(~T) < excessDensity;
 
     T = T + Wexcess;
     T = T | T';
