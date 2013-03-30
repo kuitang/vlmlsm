@@ -1,6 +1,6 @@
 function [ logZ, oneMarginals, varargout ] = fastSolveDAI(nNodes, nEdges, psi, method, daiOpts)
 % fastSolveDAI Wrap libDAI with marginalization. Must be in psi form.
-%   [ logZ, oneMarginals, [twoMarginals] ] = fastSolveDAI(psi, method, daiOpts)
+%   [ logZ, oneMarginals, [twoMarginals] ] = fastSolveDAI(nNodes, nEdges, psi, method, daiOpts)
 %
 %   psi          - Potentials. Get from makePsi.
 %

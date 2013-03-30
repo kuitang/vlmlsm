@@ -23,7 +23,7 @@ randSearchParams = struct('nNodes', nNodes, 'etaMin', -1, 'etaMax', 1, 'jMax', 5
 matlabpool open 12
 spmd
     %% One iter
-    allProblems = randSearch(randSearchParams);    
+    [allProblems, allFailVecs] = randSearch(randSearchParams);    
 end
 
 save(fn);
