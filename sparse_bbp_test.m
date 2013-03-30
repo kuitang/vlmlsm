@@ -20,7 +20,7 @@ wb = 1;
 excessDensity = log(nNodes) / nNodes;
 %excessDensity = 0.1;
 
-epsilon = 1e-2;
+epsilon = 0.1;
 
 oneMarg(nNodes,nTrials,2) = 0;
 trueOneMarg(nNodes,nTrials) = 0;

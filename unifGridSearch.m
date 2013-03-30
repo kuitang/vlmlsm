@@ -1,3 +1,7 @@
+%% Setup
+path_to_dai = '../libDAI-0.3.1/matlab';
+addpath(path_to_dai);
+
 % This parameter is definitely the "more sensitive" one.
 %
 % Swallow nNodes from the environment.
