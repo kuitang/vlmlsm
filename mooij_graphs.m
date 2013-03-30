@@ -17,7 +17,7 @@ runBethe = true;
 runMooij = false;
 
 % trueLogZ
-epsilon = 0.1;
+epsilon = 0.01;
 
 oneMarg(nNodes,nTrials) = 0;
 trueOneMarg(nNodes,nTrials) = 0;
@@ -90,16 +90,17 @@ for t = 1:nTrials
 
 
             if printStats            
-                %% Print stats
+                %% Bethe stats
                 [A, B, ~] = BBP(theta, W, 0.002, 1000)
-                [isz, kappa, theorybound] = getIntervalSz(A, B, W, 1e-2);
+                [isz, kappa, theorybound] = getIntervalSz(A, B, W, epsilon);
                 1 - B - A;
                 gaps = 1 - B - A;
                 totalGap = sum(gaps(:));
                 nIntervals = totalGap / isz;
-
+                
+                %% Mooij stats
                 [Am, Bm] = bpbound(nNodes, theta, W, 1000)
-                [iszm, kappa, theoryboundm] = getIntervalSz(Am, Bm, W, 1e-2)
+                [iszm, kappa, theoryboundm] = getIntervalSz(Am, Bm, W, epsilon)
                 mGaps = 1 - Bm - Am;
                 totalMGaps = sum(mGaps(:));
                 nMIntervals = totalMGaps / iszm;
@@ -128,7 +129,7 @@ for t = 1:nTrials
     %% Run JTree and LBP
     [logZ(t,1), ~, trueOneMarg(:,t), trueTwoMarg, JTTimes(t)] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');           
     disp(['JTree Finished']);
-    [logZ(t,2), ~, lbpOneMarg(:,t), lbpTwoMarg, lbpTime(t)] = solveDAI(theta, W, 'BP', '[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');
+    [logZ(t,2), ~, lbpOneMarg(:,t), lbpTwoMarg, lbpTime(t)] = solveDAI(theta, W, 'BP', '[inference=SUMPROD,updates=PARALL,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');
     disp(['LBP Finished']);
     %fprintf(1, 'logZ: True: %g; LBP: %g\n', logZ(t,1), logZ(t,2));       
     
