@@ -10,14 +10,14 @@
 %% Setup
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
-nNodes = 4;
+nNodes = 5;
         
 printStats = true;
 runBethe = true;
 runMooij = false;
 
 % trueLogZ
-epsilon = 0.1;
+epsilon = 10;
 
 oneMarg(nNodes,nTrials) = 0;
 trueOneMarg(nNodes,nTrials) = 0;
