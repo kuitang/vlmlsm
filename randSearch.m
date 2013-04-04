@@ -15,7 +15,9 @@ function [ problems, failVec ] = randSearch(params)
     nProblems = 0;
     failVec(3) = 0;  
     
-    fn = ['randsearch_checkpoint' labindex '_' datestr(now, 0)];
+    dstr = datestr(now, 0);
+    fn = ['randsearch_checkpoint_' num2str(labindex) '_' dstr];
+    fnFinal = ['randsearch_' num2str(labindex) '_' dstr]; 
     
     % Print something and save intermediate results every 10%    
     decile = params.nIters / 10;
@@ -46,4 +48,6 @@ function [ problems, failVec ] = randSearch(params)
     if nProblems == 0
         problems = struct();
     end
+
+    save(fnFinal);
 end

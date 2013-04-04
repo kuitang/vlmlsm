@@ -66,6 +66,8 @@ double *MinSum::alloc(size_t nDoubles) {
   if (nextMemUsed > MAX_MEM) { errFunc("MinSum::alloc: Exceeded memory cap!"); }
   if (nextMemUsed >= mem.size()) {
     double *oldBase = mem.data();
+    // single resize
+//    mem.resize(MAX_MEM);
     mem.resize(2 * nextMemUsed);
     double *newBase = mem.data();
 
