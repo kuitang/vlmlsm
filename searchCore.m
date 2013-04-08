@@ -16,15 +16,25 @@ function [ problem, failVec ] = searchCore(wrong, eta, J, params)
     %assertElementsAlmostEqual(JBack, J);
     %assertElementsAlmostEqual(etaBack, eta);
 
-    % TODO: Figure out the initialization conditions in the codes.
-    [trueLogZ, trueOneMarg, trueTwoMarg] = fastSolveDAI(nNodes, nEdges, psi, 'JTREE', '[updates=HUGIN,verbose=0]');
+    % TODO: Figure out the initialization conditions in the codes.    
+    [trueLogZ, trueOneMarg, ~, trueTwoMarg] = fastSolveDAI(nNodes, nEdges, psi, 'JTREE', '[updates=HUGIN,verbose=0]');
 %         [checkLogZ, ~, checkOneMarg, checkTwoMarg, ~] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');
 %         assertElementsAlmostEqual(checkLogZ, trueLogZ);
 %         assertElementsAlmostEqual(trueOneMarg, checkOneMarg);
 %         assertElementsAlmostEqual(trueTwoMarg, checkTwoMarg);
-    [paLogZ, paOneMarg]       = fastSolveDAI(nNodes, nEdges, psi, 'BP', '[inference=SUMPROD,updates=PARALL,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');        
-    [sfLogZ, sfOneMarg]       = fastSolveDAI(nNodes, nEdges, psi, 'BP', '[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');                       
+    [paLogZ, paOneMarg, paLogZHist] = fastSolveDAI(nNodes, nEdges, psi, 'BP', '[inference=SUMPROD,updates=PARALL,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');        
+    [sfLogZ, sfOneMarg, sfLogZHist] = fastSolveDAI(nNodes, nEdges, psi, 'BP', '[inference=SUMPROD,updates=SEQFIX,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');                       
 
+    if params.plot
+        figure(1);
+        plot(paLogZHist);
+        title('PARALL logZ');
+
+        figure(2);
+        plot(sfLogZHist);
+        title('SEQFIX logZ');
+    end
+    
     trueNegBethe = -bethe(theta, W, trueOneMarg, trueTwoMarg);
 
     paFail = wrong(trueNegBethe, trueOneMarg, paLogZ, paOneMarg);
@@ -36,7 +46,7 @@ function [ problem, failVec ] = searchCore(wrong, eta, J, params)
     srLogZs(Nr) = 0;
     srOneMargs(nNodes,Nr) = 0;
     for r = 1:Nr
-        [srLogZs(r), srOneMargs(:,r)] = fastSolveDAI(nNodes, nEdges, psi, 'BP', '[inference=SUMPROD,updates=SEQRND,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');            
+        [srLogZs(r), srOneMargs(:,r), ~] = fastSolveDAI(nNodes, nEdges, psi, 'BP', '[inference=SUMPROD,updates=SEQRND,logdomain=0,tol=1e-9,maxiter=10000,damping=0.0]');            
         if wrong(trueNegBethe, trueOneMarg, srLogZs(r), srOneMargs(:,r))
             nWrong = nWrong + 1;
         end

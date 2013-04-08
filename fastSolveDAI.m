@@ -1,4 +1,4 @@
-function [ logZ, oneMarginals, varargout ] = fastSolveDAI(nNodes, nEdges, psi, method, daiOpts)
+function [ logZ, oneMarginals, logZHist, varargout ] = fastSolveDAI(nNodes, nEdges, psi, method, daiOpts)
 % fastSolveDAI Wrap libDAI with marginalization. Must be in psi form.
 %   [ logZ, oneMarginals, [twoMarginals] ] = fastSolveDAI(nNodes, nEdges, psi, method, daiOpts)
 %
@@ -11,8 +11,13 @@ function [ logZ, oneMarginals, varargout ] = fastSolveDAI(nNodes, nEdges, psi, m
 %                  We only compute pairwise marginals for edges that appear
 %                  in W.
  
-    % Call DAI    
-    [logZ,~,~,oneMStruct,twoMStruct,~] = dai(psi, method, daiOpts);
+    % Call DAI
+    if strcmp(method, 'BP')
+        [logZ,~,~,oneMStruct,twoMStruct,~,logZHist] = dai(psi, method, daiOpts);
+    else
+        [logZ,~,~,oneMStruct,twoMStruct,~] = dai(psi, method, daiOpts);
+        logZHist = 0;
+    end        
     
     % oneMStruct is ordered by the nodes because that's how we entered them.
     % At least, we hope so.
@@ -22,7 +27,7 @@ function [ logZ, oneMarginals, varargout ] = fastSolveDAI(nNodes, nEdges, psi, m
         oneMarginals(n) = oneMStruct{n}.P(2);
     end
         
-    if nargout == 3
+    if nargout == 4
         varargout{1}(2,2,nEdges) = 0;
         for ne = 1:nEdges        
             %assert(all(twoMStruct{mStructIdx}.Member == vars(ne,:)));
