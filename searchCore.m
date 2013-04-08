@@ -40,6 +40,9 @@ function [ problem, failVec ] = searchCore(wrong, eta, J, params)
     paFail = wrong(trueNegBethe, trueOneMarg, paLogZ, paOneMarg);
     sfFail = wrong(trueNegBethe, trueOneMarg, sfLogZ, sfOneMarg);        
 
+    paL1   = sum(abs(trueOneMarg - paOneMarg));
+    sfL1   = sum(abs(trueOneMarg - sfOneMarg));
+
     % SeqRnd is harder; because it's random, we have to run many
     % trials.          
     nWrong = 0;        
@@ -62,32 +65,28 @@ function [ problem, failVec ] = searchCore(wrong, eta, J, params)
 
     roundSrLogZs = roundn(srLogZs, -6);
     [uniqSrLogZs, srIdxs] = unique(roundSrLogZs);
-    distSrLogZs = histc(roundSrLogZs, uniqSrLogZs) ./ length(roundSrLogZs);
+    nFixedPoints = length(roundSrLogZs);
+    distSrLogZs = histc(roundSrLogZs, uniqSrLogZs) ./ nFixedPoints;
     
-    % Also bin into histog
-
     % Filter down
     uniqSrOneMargs = srOneMargs(:,srIdxs);        
 
     % We must fail all three categories. Otherwise, some lower fixed
     % point does exist.
-    if paFail && sfFail
-        if ~srFail
-            warning('SEQRND did not fail');
-        end
-
+    if paFail || sfFail
         % Finally, test for feasibility.
         [A, B, ~] = BBP(theta, W, 0.002, 10000);
         isz  = getIntervalSz(A, B, W, params.epsilon);
         nIntervals = sum((1 - B - A) ./ isz);        
         if nIntervals > params.maxIntervals      
-            fprintf(1, 'Infeasible problem required %d intervals.\n', ...
-                    nIntervals);
+            %fprintf(1, 'Infeasible problem required %d intervals.\n', ...
+            %        nIntervals);
         else
+            totL1 = paL1 + sfL1;
             problem = ...
                 var2struct(theta, W, eta, J, trueOneMarg, sfOneMarg, paOneMarg, uniqSrOneMargs, ...
                            trueLogZ, trueNegBethe, paLogZ, sfLogZ, uniqSrLogZs, distSrLogZs, ...
-                           A, B, isz, nIntervals);            
+                           A, B, isz, nIntervals, paL1, sfL1, totL1);            
         end
     end
 end

@@ -10,10 +10,10 @@ function [ problems, failVec ] = randSearch(params)
 %             - eta, w
 %             - lbpOneMarg, trueOneMarg, lbpTwoMarg, trueTwoMarg
     
-    wrong = makeWrong(params); 
+    wrong = makePotentialWrong(params); 
             
     nProblems = 0;
-    failVec(3) = 0;  
+    failVec(3) = 0; 
     
     dstr = datestr(now, 0);
     fn = ['randsearch_checkpoint_' num2str(labindex) '_' dstr];
@@ -30,17 +30,24 @@ function [ problems, failVec ] = randSearch(params)
         [problem, fails] = searchCore(wrong, eta, J, params);
         failVec = failVec + fails;
         if ~isempty(fieldnames(problem))
+            fprintf('Problem detected; totL1 = %g\n', problem.totL1);
             nProblems = nProblems + 1;
-            problems(end+1) = problem;
+            problems(nProblems) = problem;
         end
         
         % Periodically save and report progress.
         countdown = countdown - 1;
         if countdown == 0
-           fprintf('%s -- Lab %d: Iter %d of %d: %d problems\n', ...
-                   datestr(now, 0), labindex, i, params.nIters, nProblems);           
-           save(fn);
-           countdown = decile;
+            % Thin down the "problems" to the biggest ones before saving to disk
+            if nProblems > 0
+                [~, idxs] = sort([problems.totL1], 1, 'descend');
+                problems = problems(idxs(1:min(end, 5)));
+            end
+
+            fprintf('%s -- Lab %d: Iter %d of %d: %d problems\n', ...
+                    datestr(now, 0), labindex, i, params.nIters, nProblems);           
+            save(fn);
+            countdown = decile;
         end
     end
     
