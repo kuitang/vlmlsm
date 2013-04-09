@@ -16,8 +16,8 @@ function [ problems, failVec ] = randSearch(params)
     failVec(3) = 0; 
     
     dstr = datestr(now, 0);
-    fn = ['randsearch_checkpoint_' num2str(labindex) '_' dstr];
-    fnFinal = ['randsearch_' num2str(labindex) '_' dstr]; 
+    fn = sprintf('randsearch_%d_nodes_%d_%s', params.nNodes, labindex, dstr); 
+    fnFinal = sprintf('randsearch_%d_%s', labindex, dstr);
     
     % Print something and save intermediate results every 10%    
     decile = params.nIters / 10;

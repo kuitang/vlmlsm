@@ -16,7 +16,7 @@ fn = ['rand_gridsearch_' num2str(nNodes) '_nodes_' datestr(now, 0);];
 adj = ones(nNodes,nNodes) - diag(diag(ones(nNodes,nNodes)));
 
 randSearchParams = struct('nNodes', nNodes, 'etaMin', -1, 'etaMax', 1, ...
-                          'jMax', 5, 'plot', false, 'nIters', nIters, ... 
+                          'jMax', 2, 'plot', false, 'nIters', nIters, ... 
                           'adj', adj, 'margThresh', 0.1, 'epsilon', 0.1, ...
                           'betheThresh', 0.1, 'nSeqRnd', 100, 'maxIntervals', 1e5);
 
@@ -27,6 +27,6 @@ spmd
     [allProblems, allFailVecs] = randSearch(randSearchParams);    
 end
 
-save(fn);
+%save(fn);
 
 matlabpool close

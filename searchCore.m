@@ -75,10 +75,14 @@ function [ problem, failVec ] = searchCore(wrong, eta, J, params)
     % point does exist.
     if paFail || sfFail
         % Finally, test for feasibility.
-        [A, B, ~] = BBP(theta, W, 0.002, 10000);
+        [A, B, ~] = BBP(theta, W, 0.0002, 10000);
         isz  = getIntervalSz(A, B, W, params.epsilon);
         nIntervals = sum((1 - B - A) ./ isz);        
-        if nIntervals > params.maxIntervals      
+        if nIntervals < 0
+            warning('Got negative nIntervals; values probably too large');
+        end
+
+        if abs(nIntervals) > params.maxIntervals      
             %fprintf(1, 'Infeasible problem required %d intervals.\n', ...
             %        nIntervals);
         else
