@@ -30,7 +30,10 @@ function [ problems, failVec ] = randSearch(params)
         [problem, fails] = searchCore(wrong, eta, J, params);
         failVec = failVec + fails;
         if ~isempty(fieldnames(problem))
-            fprintf('Problem detected; totL1 = %g\n', problem.totL1);
+            if ~params.quiet
+                fprintf('Problem detected; totL1 = %g, nIntervals = %g\n', problem.totL1, problem.nIntervals);
+            end
+
             nProblems = nProblems + 1;
             problems(nProblems) = problem;
         end
@@ -40,8 +43,11 @@ function [ problems, failVec ] = randSearch(params)
         if countdown == 0
             % Thin down the "problems" to the biggest ones before saving to disk
             if nProblems > 0
+                [~, fastIdxs] = sort([problems.nIntervals]);
+                fastProblems  = problems(fastIdxs(1:min(end, 5)));
+
                 [~, idxs] = sort([problems.totL1], 1, 'descend');
-                problems = problems(idxs(1:min(end, 5)));
+                problems  = problems(idxs(1:min(end, 5)));
             end
 
             fprintf('%s -- Lab %d: Iter %d of %d: %d problems\n', ...
