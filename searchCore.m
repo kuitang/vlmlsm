@@ -73,7 +73,10 @@ function [ problem, failVec ] = searchCore(wrong, eta, J, params)
 
     % We must fail all three categories. Otherwise, some lower fixed
     % point does exist.
-    if paFail || sfFail
+    if paFail && sfFail
+        if ~srFail
+            warning('SEQRND did not fail');
+        end
         % Finally, test for feasibility.
         [A, B, ~] = BBP(theta, W, 0.0002, 10000);
         isz  = getIntervalSz(A, B, W, params.epsilon);

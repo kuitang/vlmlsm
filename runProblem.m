@@ -7,6 +7,10 @@ function runProblem( problemPath, userEpsilon )
     load(problemPath);
     problem = problems(1);
 
+    % Maybe?
+    epsilon = userEpsilon;
+    problem.epsilon = userEpsilon;
+
     theta = problem.theta;
     W     = problem.W;
 
@@ -17,7 +21,7 @@ function runProblem( problemPath, userEpsilon )
 
     disp(['Optimization finished with epsilon = ' num2str(userEpsilon)]);
 
-    savePath = [problemPath '_RESULTS'];
+    savePath = [problemPath '_RESULTS_NEW'];
     save(savePath);
 
 end

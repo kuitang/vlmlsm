@@ -28,6 +28,6 @@ spmd
     [allProblems, allFailVecs] = randSearch(randSearchParams);    
 end
 
-%save(fn);
+save(fn);
 
 matlabpool close

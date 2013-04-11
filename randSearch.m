@@ -10,7 +10,8 @@ function [ problems, failVec ] = randSearch(params)
 %             - eta, w
 %             - lbpOneMarg, trueOneMarg, lbpTwoMarg, trueTwoMarg
     
-    wrong = makePotentialWrong(params); 
+    %wrong = makePotentialWrong(params); 
+    wrong = makeWrong(params); 
             
     nProblems = 0;
     failVec(3) = 0; 
@@ -25,6 +26,9 @@ function [ problems, failVec ] = randSearch(params)
 
     for i = 1:params.nIters
         J   = params.jMax * sprand(params.adj);
+        % Symmetrize!
+        J   = 0.5 * (J + J'); 
+
         eta = unifrnd(params.etaMin, params.etaMax, params.nNodes, 1);
         
         [problem, fails] = searchCore(wrong, eta, J, params);
