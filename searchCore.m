@@ -73,7 +73,9 @@ function [ problem, failVec ] = searchCore(wrong, eta, J, params)
 
     % We must fail all three categories. Otherwise, some lower fixed
     % point does exist.
-    if paFail && sfFail
+    %
+    % OR-FAIL (yadiyadiyah)
+    if paFail || sfFail
         if ~srFail
             warning('SEQRND did not fail');
         end

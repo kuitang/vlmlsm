@@ -237,6 +237,16 @@ namespace mexcpp {
       return f;
     }
 
+    bool hasField(const char *fname) {
+      mxArray *f = mxGetField(pmm, ind, fname);
+      return f == 0;
+    }
+
+    bool hasField(mwIndex fnum) {
+      mxArray *f = mxGetFieldByNumber(pmm, ind, fnum);
+      return f == 0;
+    }
+
     // Get an instantiated field
     template <class T, class F> T get(F fn) { return T(field(fn)); }
     template <class S, class F> S getS(F fn) { return scalar<S>(field(fn)); }
@@ -283,6 +293,16 @@ namespace mexcpp {
 
     Entry operator[](size_t ind) { return Entry(pm, ind); }
     Entry operator()(size_t r, size_t c) { return (*this)[(sub2ind(r,c))]; }
+
+    bool hasField(const char *fname) {
+      mxArray *f = mxGetField(pm, 1, fname);
+      return f == 0;
+    }
+
+    bool hasField(mwIndex fnum) {
+      mxArray *f = mxGetFieldByNumber(pm, 1, fnum);
+      return f == 0;
+    }
 
     // Syntactic sugar; access the first element.
     // Deals with the common use case with a 1x1 "matrix".

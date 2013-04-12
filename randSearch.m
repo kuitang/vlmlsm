@@ -17,8 +17,8 @@ function [ problems, failVec ] = randSearch(params)
     failVec(3) = 0; 
     
     dstr = datestr(now, 0);
-    fn = sprintf('randsearch_%d_nodes_%d_%s', params.nNodes, labindex, dstr); 
-    fnFinal = sprintf('randsearch_%d_%s', labindex, dstr);
+    fn = sprintf('/var/tmp/kt2384/randsearch_%d_nodes_%d_%s', params.nNodes, labindex, dstr); 
+    fnFinal = sprintf('/var/tmp/kt2384/randsearch_%d_%s', labindex, dstr);
     
     % Print something and save intermediate results every 10%    
     decile = params.nIters / 10;
@@ -50,8 +50,24 @@ function [ problems, failVec ] = randSearch(params)
                 [~, fastIdxs] = sort([problems.nIntervals]);
                 fastProblems  = problems(fastIdxs(1:min(end, 5)));
 
-                [~, idxs] = sort([problems.totL1], 1, 'descend');
+                [~, idxs] = sort([problems.totL1], 'descend');
                 problems  = problems(idxs(1:min(end, 5)));
+                
+                fprintf(1, 'Problem L1: %s\n', num2str([problems.totL1]));
+                % RUN THE DAMN THING!!!
+
+                nNewProblems = length(problems);
+                for np = 1:nNewProblems
+                    try
+                        [problems(np).betheLogZ, problems(np).betheOneMarg, problems(np).betheTwoMarg, problems(np).betheMisc] = BetheApprox_opt_mex(problems(np).theta, problems(np).W, params.epsilon, struct('useMooij', true));
+                        disp('trueNegBethe betheLogZ trueLogZ paLogZ sfLogZ');
+                        [problems(np).trueNegBethe, problems(np).betheLogZ, problems(np).trueLogZ, problems(np).paLogZ, problems(np).sfLogZ];
+                    catch err
+                        disp(err);
+                        disp(err.stack);
+                    end
+                end
+
             end
 
             fprintf('%s -- Lab %d: Iter %d of %d: %d problems\n', ...

@@ -2,7 +2,7 @@
 path_to_dai = '../libDAI-0.3.1/matlab';
 addpath(path_to_dai);
 
-fn = ['rand_gridsearch_' num2str(nNodes) '_nodes_' datestr(now, 0);];
+fn = ['rand_bethe_gridsearch_' num2str(nNodes) '_nodes_' datestr(now, 0);];
 
 % Double-cycle star graph
 % adj = [ 0 1 0 0 1 
@@ -19,14 +19,16 @@ randSearchParams = struct('nNodes', nNodes, 'etaMin', -1, 'etaMax', 1, ...
                           'jMax', 1, 'plot', false, 'nIters', nIters, ... 
                           'adj', adj, 'margThresh', 0.1, 'epsilon', 0.1, ...
                           'betheThresh', 0.1, 'nSeqRnd', 100, ...
-                          'quiet', quiet, 'maxIntervals', 1e5);
+                          'quiet', quiet, 'maxIntervals', 5e4);
+
+% Run in serial for the sake of CPU
 
 %% Or actually run it
-matlabpool open 12
-spmd
+%matlabpool open 12
+%spmd
     %% One iter
     [allProblems, allFailVecs] = randSearch(randSearchParams);    
-end
+%end
 
 save(fn);
 

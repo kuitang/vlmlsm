@@ -74,9 +74,19 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   double alpha[W.nzMax];
 
   // default thresh
-  double bbThresh = 0.002; // maybe change to 10-4 or something? Will make Mooij slower.
-  int maxIter = 1000; // something really huge
+  double bbThresh = 1e-4; // maybe change to 10-4 or something? Will make Mooij slower.
+  int maxIter = 10000; // something really huge
   bool useMooij = opts.getS<bool>("useMooij");
+
+  if (opts.hasField("bbThresh")) {
+    bbThresh = opts.getS<double>("bbThresh");
+  }
+
+  if (opts.hasField("maxIter")) {
+    // Not really a double; but MATLAB sets stuff to double by default.
+    maxIter = opts.getS<double>("maxIter");
+    if (maxIter < 0) { mexErrMsgIdAndTxt("BetheApprox_mex:opts", "negative maxIter?!\n"); }
+  }
 
   clock_t makeMinSumBegin = tic();
   if (useMooij) {
