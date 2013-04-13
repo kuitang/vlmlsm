@@ -53,7 +53,8 @@ bool propogateBetheBound(size_t nNodes,
   double oldA[nNodes], oldB[nNodes];
   double L, U;
 
-  for (int t = 0; !converged && t < maxIter; t++) {
+  int t; // scope it outside for debug
+  for (t = 0; !converged && t < maxIter; t++) {
     std::copy(A, A + nNodes, oldA);
     std::copy(B, B + nNodes, oldB);
 
@@ -80,6 +81,10 @@ bool propogateBetheBound(size_t nNodes,
     converged = oneNormConverged(nNodes, A, oldA, thresh) &&
                 oneNormConverged(nNodes, B, oldB, thresh);
   }
+
+#ifndef NDEBUG
+  mexPrintf("DEBUG: Ran for %d iterations; maxIter = %d\n", t, maxIter);
+#endif
 
   fixBounds(nNodes, A, B);
   return converged;

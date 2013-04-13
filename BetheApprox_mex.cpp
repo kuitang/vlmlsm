@@ -85,6 +85,9 @@ void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   if (opts.hasField("maxIter")) {
     // Not really a double; but MATLAB sets stuff to double by default.
     maxIter = opts.getS<double>("maxIter");
+#ifndef NDEBUG
+    mexPrintf("DEBUG: Got maxIter = %d from struct\n", maxIter);
+#endif
     if (maxIter < 0) { mexErrMsgIdAndTxt("BetheApprox_mex:opts", "negative maxIter?!\n"); }
   }
 

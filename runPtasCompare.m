@@ -20,18 +20,18 @@ for nNodes = 4:10
         theta = -0.5 * sum(W, 2);
 
         % Calling sequence
-        fprintf(1, 'Starting bbp');
+        disp('Starting BBP');
 
         tic;
         [bbpLogZ, ~, ~, bbpMisc] = BetheApprox_opt_mex(theta, W, 0.01, struct('useMooij', false));
         fprintf(1, 'nNodes = %d, dw = %d, bbp time = %g\n', nNodes, dw, toc);
 
-        fprintf(1, 'Starting mooij');
+        disp('Starting Mooij');
         tic;
         [mkLogZ, ~, ~, mkMisc] = BetheApprox_opt_mex(theta, W, 0.01, struct('useMooij', true));
-        fprintf(1, 'nNodes = %d, dw = %d, bbp time = %g\n', nNodes, dw, toc);
+        fprintf(1, 'nNodes = %d, dw = %d, mk time = %g\n', nNodes, dw, toc);
 
-        fprintf(1, 'Starting brute');
+        disp('Starting Raw');
         tic;
         [rawLogZ, ~, ~, rawMisc] = BetheApprox_opt_mex(theta, W, 0.01, struct('useMooij', false, 'maxIter', 0));
         fprintf(1, 'nNodes = %d, dw = %d, raw time = %g\n', nNodes, dw, toc);
