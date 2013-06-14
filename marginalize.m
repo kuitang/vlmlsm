@@ -18,9 +18,7 @@ function [ M, xi ] = marginalize( alpha, q_i, q_j )
         R = beta + q_i + q_j;
         xi = 0.5*(R - sign(beta)*sqrt(R^2 - 4*(1 + beta)*q_i*q_j));        
     end
-    
-    M = [ 1 + xi - q_i - q_j, q_j - xi;
-          q_i - xi,           xi ];
-
+        
+    M = [ 1 + xi - q_i - q_j ; q_j - xi ; q_i - xi ; xi ];
 end
 

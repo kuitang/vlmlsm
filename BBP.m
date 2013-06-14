@@ -68,8 +68,8 @@ function [ A, B, alpha ] = BBP( theta, W, thresh, maxIter )
         if all(dA < thresh) && all(dB < thresh)
             converged = true;
         elseif iter >= maxIter
-            warning(['Convergence threshold ' num2str(thresh) ...
-                     ' not reached after ' num2str(maxIter) ' iterations']);            
+            %warning(['Convergence threshold ' num2str(thresh) ...
+            %         ' not reached after ' num2str(maxIter) ' iterations']);            
         end
         
         iter = iter + 1;

@@ -2,7 +2,7 @@ function [intervalSz, varargout] = getIntervalSz(A, B, W, epsilon)
 % getIntervalSz Calculate the required interval size for epsilon accuracy
 %
 % intervalSz = getIntervalSz(A, B, W, epsilon)    
-% [intervalSz, kappa, theoryBound] = getIntervalSz(A, B, W, epsilon)
+% [intervalSz, kappa, theoryBound, aMax, bMax] = getIntervalSz(A, B, W, epsilon)
     nNodes = size(W, 1);
     nEdges = nnz(W) / 2;
     
@@ -57,6 +57,10 @@ function [intervalSz, varargout] = getIntervalSz(A, B, W, epsilon)
     end
     if nargout >= 3 % output kappaBound 
         varargout{2} = (nNodes^6 * Omega^(3/2) * density^(3/4) / (sqrt(8) * epsilon^(3/2)));
+    end
+    if nargout >= 5
+        varargout{3} = aMax;
+        varargout{4} = bMax;
     end
     intervalSz = sqrt(2*epsilon / (Lambda));
     

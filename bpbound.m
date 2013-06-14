@@ -1,5 +1,5 @@
 function [A,B] = bpbound(N,theta,W,maxiter)
-% function [A,B] = bpbound(N,theta,J,maxiter)
+% function [A,B] = bpbound(N,theta,W,maxiter)
 % Improved bound calculation algorithm
 % section IIIE of http://cs.ru.nl/~jorism/articles/04385778.pdf
 
