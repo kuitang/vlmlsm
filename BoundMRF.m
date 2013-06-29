@@ -75,29 +75,48 @@ function [ D, newW, Vi, Vm, qr ] = boundMRF( theta, W, A, B, intervalSz )
             continue;
         end
                 
-        qir = qr{i};
-        qjr = qr{j};
-        Vm{ne} = zeros(length(qir), length(qjr));
+%         qir = qr{i};
+%         qjr = qr{j};
+%         Vm{ne} = zeros(length(qir), length(qjr));
         
-        for iq = 1:length(qir)
-            for jq = 1:length(qjr)
-                q_i = qir(iq);
-                q_j = qjr(jq);
-                
-                [marginal, xi] = marginalize(aij, q_i, q_j);
-                % Linearize
-                marginal = marginal(:);
-                
-                % Lemma 8: If neither q_i nor q_j are zero, then all
-                % marginals should be positive.
-                if q_i ~= 0 && q_j ~= 0
-                    assert(all(marginal > 0));
-                end
-                S = -marginal' * log(marginal);
-                
-                Vm{ne}(iq, jq) = -w * xi - S;                
-            end
-        end        
+        % PUT THIS BLOCK, AND JUST THIS BLOCK, INTO A MEX FILE...
+        % Somehow the overhead to marginalize is insane. Lot's of the time
+        % is credited to the end lines! And the assert!
+        %
+        % (I think mostly because it's just called EVERY SINGLE TIME.)
+%        checkPot = makePotential_mex(qr{i}, qr{j});
+        Vm{ne} = makePotential_mex(qr{i}, qr{j});
+        
+        
+%         for iq = 1:length(qir)
+%             for jq = 1:length(qjr)
+%                 q_i = qir(iq);
+%                 q_j = qjr(jq);
+%                 
+%                 % Just inlined the goddamn thing
+%                 % Compute with Welling and Teh's footnote 1 on pp. 55
+%                 if alpha == 0 % No interaction; independent marginals
+%                     xi = q_i * q_j;
+%                 else
+%                     beta = 1/alpha;
+%                     R = beta + q_i + q_j;
+%                     xi = 0.5*(R - sign(beta)*sqrt(R^2 - 4*(1 + beta)*q_i*q_j));
+%                 end
+%                 
+%                 marginal = [ 1 + xi - q_i - q_j, q_j - xi, q_i - xi, xi ];
+%                 
+%                 % Lemma 8: If neither q_i nor q_j are zero, then all
+%                 % marginals should be positive.
+%                 if q_i ~= 0 && q_j ~= 0
+%                     assert(all(marginal > 0));
+%                 end
+%                 
+%                 S = sum(-marginal .* log(marginal));
+%                 Vm{ne}(iq, jq) = -w * xi - S;                
+%             end
+%         end
+        
+        assertElementsAlmostEqual(Vm{ne}, checkPot);
     end
     
     % Symmetrize

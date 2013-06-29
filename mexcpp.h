@@ -9,10 +9,10 @@
  *
  * TODO: Support complex!
  *
- * Version 0.1
+ * Version 0.2 -- compiles on 4.6.3, no C++11 needed. scalar supports string.
  * Copyright (c) 2013 Kui Tang <kuitang@gmail.com>
  *
- * Inspired by Rcpp nr3matlab.h
+ * Inspired by Rcpp and nr3matlab.h
  */
 
 #pragma once
@@ -68,18 +68,32 @@ namespace mexcpp {
 
   // Scalar library
 
+  // Extract a scalar from a MATLAB pointer
   template<class T>
-  const T &scalar(const mxArray *prhs) {
+  T scalar(const mxArray *prhs) {
     checkTypeOrErr<T>(prhs);
     return *(static_cast<T*>(mxGetData(prhs)));
   }
 
+  template<>
+  std::string scalar(const mxArray *prhs) {
+    return std::string(mxArrayToString(prhs));
+  }
+
+  // Set a MATLAB pointer from a scalar
   template<class T>
   mxArray *scalar(const T &x) {
     mxArray *pm = mxCreateNumericMatrix(1, 1, ty<T>(), mxREAL);
     *(static_cast<T*>(mxGetData(pm))) = x;
     return pm;
   }
+
+  template<>
+  mxArray *scalar(const std::string &s) {
+    mxArray *pm = mxCreateString(s.c_str());
+    return pm;
+  }
+
 
   // This function copies memory. It is expected to be used for small
   // user-supplied strings.
@@ -193,7 +207,7 @@ namespace mexcpp {
     }
 
     template<class T>
-    void set(size_t ind, const T &x) { mxSetCell(pm, ind, x); }
+    void set(size_t ind, const T &x) { mxSetCell(pm, ind, const_cast<T &>(x)); }
     template<class S>
     void setS(size_t ind, const S &x) { mxSetCell(pm, ind, scalar(x)); }
 
@@ -272,10 +286,8 @@ namespace mexcpp {
       nFields = fieldNames.size();
       const char *fns[nFields];
 
-      int i = 0;
-      for (const auto &fn : fieldNames) {
-        fns[i] = fn.c_str();
-        i++;
+      for (int i = 0; i < fieldNames.size(); i++) {
+        fns[i] = fieldNames[i].c_str();
       }
 
       pm = mxCreateStructMatrix(rows, cols, nFields, fns);
@@ -283,16 +295,6 @@ namespace mexcpp {
 
     Entry operator[](size_t ind) { return Entry(pm, ind); }
     Entry operator()(size_t r, size_t c) { return (*this)[(sub2ind(r,c))]; }
-
-    bool hasField(const char *fname) {
-      mxArray *f = mxGetField(pm, 0, fname);
-      return f != 0;
-    }
-
-    bool hasField(mwIndex fnum) {
-      mxArray *f = mxGetFieldByNumber(pm, 0, fnum);
-      return f != 0;
-    }
 
     // Syntactic sugar; access the first element.
     // Deals with the common use case with a 1x1 "matrix".

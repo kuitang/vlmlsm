@@ -276,7 +276,7 @@ cscMatrix calcIntervals(size_t nNodes, const double *A, const double *B, double 
 
     double dPoints = intervalLength / intervalSz;
     if (dPoints > std::numeric_limits<int>::max()) {
-      mexPrintf("%s:%d -- intervalLength = %g ; intervalSz = %g. But dPoints = intervalLength  / intervalSz = %g overflows int.\n", 
+      mexPrintf("%s:%d -- intervalLength = %g ; intervalSz = %g. But dPoints = intervalLength  / intervalSz = %g overflows int.\n",
                 __FILE__, __LINE__, intervalLength, intervalSz, dPoints);
       mexErrMsgIdAndTxt("calcIntervals:tooManyPoints", "Interval size too small; discretization points too many. Aborting.");
     }

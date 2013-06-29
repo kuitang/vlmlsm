@@ -11,24 +11,6 @@ enum {
   oMisc            /* 3 */
 };
 
-// Compressed sparse column layout. (MATLAB's format)
-//
-// jc[j] is the linear index of the first nonzero element in column j and
-// jc[j+1]-1 is the linear index of the last nonzero element in column j.
-//
-// ir[i] is the ROW of the node at linear index i.
-cscMatrix extractCSC(const mxArray *M) {
-  if (!mxIsDouble(M) || !mxIsSparse(M)) {
-    mexErrMsgIdAndTxt("extractCSC:M", "matrix M must be double and sparse");
-  }
-
-  return { .N = mxGetN(M),
-           .M = mxGetM(M),
-           .nzMax = mxGetNzmax(M),
-           .pr = mxGetPr(M),
-           .ir = mxGetIr(M),
-           .jc = mxGetJc(M) };
-}
 
 void mexFunction(int nOut, mxArray *pOut[], int nIn, const mxArray *pIn[]) {
   clock_t mexBegin = tic();
