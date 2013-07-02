@@ -30,17 +30,18 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams
     [D, newW, Vi, Vm] = boundMRFNew(theta, W, gams);
     [x, e]  = MultiLabelSubModular(D, newW, Vi, Vm);
     
-    misc = var2struct('D', 'newW', 'Vi', 'Vm', 'x', 'e', 'elMat', 'maxFlow');
+    misc = var2struct(D, newW, Vi, Vm, x, e);
     
     logZ = -e(1);
 
     % Translate levels back to marginals
     oneMarginals = zeros(nNodes, 1);
     for n = 1:nNodes
-        oneMarginals(n) = qr{n}(misc.x(n));
+        oneMarginals(n) = gams{n}(misc.x(n));
     end
   
     twoMarginals = zeros(2, 2, nEdges);
+    alpha = exp(abs(W)) - 1;
     for ne = 1:nEdges
         i = siVec(ne);
         j = sjVec(ne);
@@ -49,7 +50,7 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams
         q_i = oneMarginals(i);
         q_j = oneMarginals(j);
 
-        twoMarginals(:,:,ne) = marginalize(a, q_i, q_j);
+        twoMarginals(:,:,ne) = reshape(marginalize(a, q_i, q_j), 2, 2);
     end
     
     for ne = 1:nEdges

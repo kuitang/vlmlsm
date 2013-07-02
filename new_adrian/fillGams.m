@@ -13,6 +13,8 @@ function [ gams ] = fillGams(gamma, A, B)
         g = A(i):gamma(i):mb;
         if g(end) ~= mb
             g(end+1) = mb;
+        elseif length(g) == 1
+            g(end+1) = g(end) + min(eps, gamma(i));
         end
         gams{i} = g;
     end

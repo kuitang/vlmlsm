@@ -119,19 +119,18 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
                 % Note that little-v is symmetric in r and rr by definition
                 % of the W matrix. But the matrix V{v} is note symmetric.
                 
+                % Dimensions of the interaction matrix must match
+                %assert(nStates(r)  == size(Vv, 1));
+                %assert(nStates(rr) == size(Vv, 2));
+                
                 if r < rr
-                    Vv = V{v};
+                    qrk = qrk + w * (V{v}(k,1) + V{v}(k,end) - V{v}(k+1,1) - V{v}(k+1,end));                
                 elseif r > rr
-                    Vv = V{v}';
+                    qrk = qrk + w * (V{v}(1,k) + V{v}(end,k) - V{v}(1,k+1) - V{v}(end,k+1));
                 else
-                    assert('You cant have a self-edge');                    
+                    error('No self edges allowed');
                 end
                 
-                % Dimensions of the interaction matrix must match
-                assert(nStates(r)  == size(Vv, 1));
-                assert(nStates(rr) == size(Vv, 2));
-                
-                qrk = qrk + w * (Vv(k,1) + Vv(k,end) - Vv(k+1,1) - Vv(k+1,end));                
                 %fprintf(1, 'qrk for r = %d, k = %d, rr = %d is now %g\n', r, k, rr, qrk);
                 %fprintf(1, 'Components: %g %g %g %g\n', Vv(k,1), Vv(k,end), Vv(k+1,1), Vv(k+1,end));
             end

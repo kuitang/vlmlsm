@@ -1,11 +1,19 @@
+%% Setup
+path_to_dai = '../libDAI-0.3.1/matlab';
+addpath(path_to_dai);
+
+%% Rest of it
 N = 4;
 %edgeProb=0.5;
 edgeProb=1;
 
 seed = -1;
+
+%epsilon = 0.05;
 epsilon = 0.01;
+
 Tmax=0;  % Local potentials
-Wmax=10;
+Wmax=2;
 
 %assoc=0;
 assoc=1;
@@ -22,14 +30,19 @@ N2Hist(nTrials) = 0;
 N2_2Hist(nTrials) = 0;
 fdHist(nTrials, 3) = 0;
 
-maxPoints = 1e5;
+maxPoints = 1e4;
 
 for t = 1:nTrials
     [ gamma1,gamma2,gamma2_2,N1,N2,N2_2,seed,Am,Bm,theta,W,K,zeta, J, thisN1,thisN2,thisN2_2,L,U ] = gamma12( N,epsilon,Tmax,Wmax,edgeProb,assoc,seed,maxiter );
     
+    %% One run
     if N1 < maxPoints
         gams1 = fillGams(gamma1, Am, Bm);
-        [logZ1, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams1)
+        [logZ1, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams1);
+        [logZ1True, ~, ~, ~, ~] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');        
+        
+        logZ1 - logZ1True
+        
         N1Hist(t) = N1;
     else
         warning('Method 1 skipped because of %d points', N1);
@@ -63,7 +76,7 @@ for t = 1:nTrials
             if nPts < maxPoints
                 warning('First derivative method %d skipped because of %d points', im, nPts);
             else
-                gams{:,im} = fillGams(gm, Am, Bm);
+                gams(:,im) = fillGams(gm, Am, Bm);
             end
         end
         
