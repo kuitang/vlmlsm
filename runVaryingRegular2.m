@@ -1,13 +1,16 @@
 % RUN ON A SEPARATE MACHINE FOR EACH NNODES
 % set dw so that the problems take nontrivial time
 
-dw = 6;
-outfn = sprintf('VaryingRegular_%d_RESULTS.mat', nNodes);
+w = 2;
+outfn = sprintf('VaryingRegular_PTAS_%d_RESULTS.mat', nNodes);
 infn = sprintf('varyingregular%d.mat', nNodes);
 load(infn);
 
 matlabpool open 12
-results = parVaryingRegular(graphs, dw);
+%results = parVaryingRegularPTAS(graphs, dw);
+% Use fixed w instead
+results = parVaryingRegularPTAS3(graphs, w);
+
 
 save(outfn);
 

@@ -60,8 +60,8 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams
         checkIMarginal = sum(twoMarginals(:,:,ne), 2);   
         checkJMarginal = sum(twoMarginals(:,:,ne), 1);
 
-        assertElementsAlmostEqual(oneMarginals(i), checkIMarginal(2));
-        assertElementsAlmostEqual(oneMarginals(j), checkJMarginal(2));
+        assertElementsAlmostEqual(oneMarginals(i), checkIMarginal(2), 'relative', 1e-5);
+        assertElementsAlmostEqual(oneMarginals(j), checkJMarginal(2), 'relative', 1e-5);
     end
 
 end

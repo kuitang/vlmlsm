@@ -1,4 +1,16 @@
-all: BetheApprox_opt_mex.mexa64 BetheApprox_debug_mex.mexa64
+all: BetheApprox_opt_mex.mexa64 BetheApprox_debug_mex.mexa64 BBP_MK_opt_mex.mexa64 makePotential_mex.mexa64 MultiLabelSubModular_mex.mexa64 BK_mex.mexa64
+
+MultiLabelSubModular_mex.mexa64: MultiLabelSubModular_mex.cpp
+	mex -largeArrayDims -O MultiLabelSubModular_mex.cpp MinSum.cpp BetheApprox.cpp graph.cpp maxflow.cpp -o MultiLabelSubModular_mex.mexa64
+
+BK_mex.mexa64: BK_mex.cpp
+	mex -largeArrayDims -O BK_mex.cpp MinSum.cpp BetheApprox.cpp graph.cpp maxflow.cpp -o BK_mex.mexa64
+
+makePotential_mex.mexa64: makePotential_mex.cpp
+	mex -largeArrayDims -O makePotential_mex.cpp -o makePotential_mex.mexa64
+
+BBP_MK_opt_mex.mexa64: BBP_MK_mex.cpp BetheApprox.h BetheApprox.cpp
+	mex -largeArrayDims -O BBP_MK_mex.cpp MinSum.cpp BetheApprox.cpp graph.cpp maxflow.cpp -o BBP_MK_opt_mex.mexa64
 
 BetheApprox_opt_mex.mexa64: BetheApprox_mex.cpp BetheApprox.cpp BetheApprox.h MinSum.cpp MinSum.h
 	mex -largeArrayDims -O BetheApprox_mex.cpp MinSum.cpp BetheApprox.cpp graph.cpp maxflow.cpp -o BetheApprox_opt_mex.mexa64
@@ -6,3 +18,5 @@ BetheApprox_opt_mex.mexa64: BetheApprox_mex.cpp BetheApprox.cpp BetheApprox.h Mi
 BetheApprox_debug_mex.mexa64: BetheApprox_mex.cpp BetheApprox.cpp BetheApprox.h MinSum.cpp MinSum.h
 	mex -largeArrayDims -g BetheApprox_mex.cpp MinSum.cpp BetheApprox.cpp graph.cpp maxflow.cpp -o BetheApprox_debug_mex.mexa64
 
+clean:
+	rm *.o *.mexa64

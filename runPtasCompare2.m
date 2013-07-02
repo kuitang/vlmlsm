@@ -1,10 +1,11 @@
 %% Global (fixed) variables 
 
 % Set dw so hard that the problems take nontrivial time.
-dw = 6;
+%dw = 6;
+w = 4;
 
 % Load the graphs etc.
-fn       = 'PtasCompare_4.mat'
+fn       = 'PtasCompare_5.mat'
 problems = cell(10);
 
 matlabpool open 12
@@ -15,7 +16,7 @@ for nNodes = 4:10
     load(infn);
     nGraphs = length(graphs);
 
-    problems{nNodes} = parPtasCompare(graphs, dw / b);
+    problems{nNodes} = parPtasCompare(graphs, w);
 
     save(fn);
 end
