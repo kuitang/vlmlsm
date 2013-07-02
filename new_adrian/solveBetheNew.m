@@ -50,7 +50,7 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams
         q_i = oneMarginals(i);
         q_j = oneMarginals(j);
 
-        twoMarginals(:,:,ne) = reshape(marginalize(a, q_i, q_j), 2, 2);
+        twoMarginals(:,:,ne) = reshape(marginalize(a, q_i, q_j), 2, 2)';
     end
     
     for ne = 1:nEdges

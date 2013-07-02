@@ -21,7 +21,9 @@ function [ gams ] = fillGams(gamma, A, B, oddMethod)
             g = A(i):gamma(i):mb;
         end        
         
-        if g(end) ~= mb
+        if length(g) == 0
+            g = [A(i) mb];
+        elseif g(end) ~= mb
             g(end+1) = mb;
         elseif length(g) == 1
             g(end+1) = g(end) + min(eps, gamma(i));

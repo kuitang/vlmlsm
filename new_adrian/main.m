@@ -13,7 +13,7 @@ seed = -1;
 epsilon = 0.01;
 
 Tmax=0;  % Local potentials
-Wmax=10;
+Wmax=4;
 
 %assoc=0;
 assoc=1;
@@ -35,7 +35,7 @@ maxPoints = 1e4;
 for t = 1:nTrials
     [ gamma1,gamma2,gamma2_2,N1,N2,N2_2,seed,Am,Bm,theta,W,K,zeta, J, thisN1,thisN2,thisN2_2,L,U ] = gamma12( N,epsilon,Tmax,Wmax,edgeProb,assoc,seed,maxiter );
     
-%     [logZ1True, ~, ~, ~, ~] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');        
+    [logZ1True, ~, ~, ~, ~] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');        
     logZ1True = 0;
 
     %% One run
