@@ -81,7 +81,7 @@ for t = 1:nTrials
 
         if im ~= 3            
             assert(all(~isnan(gm)));
-            if nPts < maxPoints
+            if nPts > maxPoints
                 warning('First derivative method %d skipped because of %d points', im, nPts);
             else
                 im
