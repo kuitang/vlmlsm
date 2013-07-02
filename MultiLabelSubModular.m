@@ -1,4 +1,4 @@
-function [x, e, elMat, maxFlow] = MultiLabelSubModular(D, W, Vi, Vm)
+function [x, e] = MultiLabelSubModular(D, W, Vi, Vm)
 % Discrete optimization of the following multi-label functional
 %
 % x = argmin \sum_i D_i(x_i) + \sum_ij w_ij V_m (x_i, x_j)
@@ -102,8 +102,8 @@ wvec = vertcat(swij + 1i*svij, swij + 1i*svij);
 W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 
 % run the optimization
-%xMex = MultiLabelSubModular_mex(D, W, Vm);
-[x, maxFlow, elMat] = MultiLabelSubModularBasic(D, W, Vm);
+x = MultiLabelSubModular_mex(D, W, Vm);
+%[x, maxFlow, elMat] = MultiLabelSubModularBasic(D, W, Vm);
 %assert(all(xMex == x));
 
 if nargout > 1 % compute energy as well

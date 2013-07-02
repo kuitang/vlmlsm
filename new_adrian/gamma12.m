@@ -14,7 +14,7 @@ function [ gamma1,gamma2,gamma2_2,N1,N2,N2_2,seed,Am,Bm,theta,W,K,zeta, J, thisN
 FACeta=1; % FACeta >1 tries to speed up convergence by going further than 1* step
 
 if nargin<8; maxiter=60; end
-if nargin>=7
+if nargin>=7 && seed > 0
     rng(seed); 
 else
     seed=-1;
@@ -126,7 +126,12 @@ for i=1:n
     newb=0;
     for j=1:n
         if W(i,j)~=0
-            newb=newb+((alpha(i,j)+1)^2)/(2*alpha(i,j)+1);
+            if W(i,j)>0
+                k=alpha(i,j)/(alpha(i,j)+1);
+            else % repulsive
+                k=-alpha(i,j);
+            end
+            newb=newb+1/(1-k^2); %((alpha(i,j)+1)^2)/(2*alpha(i,j)+1);
         end
     end
     newb=(1-z(i)+newb) / ( eta(i) * (1-eta(i)) );

@@ -62,9 +62,9 @@ if intp2m(Uconst,1-B,prevr)>keps % if <= then already done
         end
         curint=intp2m(Uconst,m,p);
         curfrac=curint/keps;
-        fprintf('m iteration #%d, m=%8.6f, curfrac=%8.6f\n',iter,m,curfrac);
+        %fprintf('m iteration #%d, m=%8.6f, curfrac=%8.6f\n',iter,m,curfrac);
     end
-    fprintf('Found m at %8.6f after %d iterations. curfrac=%8.6f\n',m,iter,curfrac);
+    %fprintf('Found m at %8.6f after %d iterations. curfrac=%8.6f\n',m,iter,curfrac);
     
     iter=0;
     r=1-B; bestlo=m; besthi=1-B;
@@ -85,10 +85,10 @@ if intp2m(Uconst,1-B,prevr)>keps % if <= then already done
                 if r<=bestlo || r>=besthi; r=(bestlo+besthi)/2; disp('Interpolated r'); end
             end
             curint=intp2m(Lconst,m,r); curfrac=curint/keps;
-            fprintf('r iteration #%d, r=%8.6f, curfrac=%8.6f\n',iter,r,curfrac);
+            %fprintf('r iteration #%d, r=%8.6f, curfrac=%8.6f\n',iter,r,curfrac);
         end
     end
-    fprintf('Found nextr at %8.6f after %d iterations. curfrac=%8.6f\n',r,iter,curfrac);
+    %fprintf('Found nextr at %8.6f after %d iterations. curfrac=%8.6f\n',r,iter,curfrac);
     nextr=r;
 end
 

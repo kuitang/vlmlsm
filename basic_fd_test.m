@@ -61,6 +61,7 @@ for t = 1:nTrials
     
     problems{t} = struct('theta', theta, 'W', W);
         
+    % New, Adrian's method
     mrf = fdReduction(theta, W);
     mrf2uai(mrf, sprintf('mrf_%d.UAI.LG', t));
     fprintf(1, 'Printed problem %d\n', t);

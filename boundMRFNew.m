@@ -1,4 +1,4 @@
-function [ D, newW, Vi, Vm, gams ] = boundMRFNew(theta, W, gams)
+function [ D, newW, Vi, Vm ] = boundMRFNew(theta, W, gams)
 % boundMRF Construct an MRF for the Bethe bound approximation, for one-dim
 %   [ D, newW, Vi, Vm, gams ] = boundMRF(theta, W, gams)
 %   Output an MRF with N nodes and, each having as many labels as
