@@ -1,5 +1,9 @@
-function [ gams ] = fillGams(gamma, A, B)
+function [ gams ] = fillGams(gamma, A, B, oddMethod)
 % fillGams  Return cell-array of schedule for a fixed (per-dimension) gamma
+
+    if nargin < 4
+        oddMethod = false;
+    end
 
     N = length(A);
     if length(gamma) == 1
@@ -9,8 +13,14 @@ function [ gams ] = fillGams(gamma, A, B)
     gams = cell(N, 1);
     
     for i = 1:N
-        mb = 1 - B(i);
-        g = A(i):gamma(i):mb;
+        mb = 1 - B(i);                
+        
+        if oddMethod
+            g = (A(i) + gamma(i)) : (2*gamma(i)) : mb;
+        else
+            g = A(i):gamma(i):mb;
+        end        
+        
         if g(end) ~= mb
             g(end+1) = mb;
         elseif length(g) == 1
