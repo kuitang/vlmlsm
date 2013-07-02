@@ -27,6 +27,12 @@ function [ x, maxFlow, elMat ] = MultiLabelSubModularBasic( D, W, V )
     nStates = zeros(N, 1);
     for n = 1:N
         nStates(n) = length(D{n});
+        
+        if nStates(n) == 1
+            nStates(n) = 2;
+            D{n}(2) = D{n}(1);
+        end
+        
         assert(nStates(n) >= 2, 'Each node must have at least two states!')
     end
     maxNStates = max(nStates);

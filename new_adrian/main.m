@@ -1,9 +1,11 @@
-N = 8;
+N = 4;
+%edgeProb=0.5;
+edgeProb=1;
+
 seed = -1;
 epsilon = 0.01;
 Tmax=0;  % Local potentials
 Wmax=10;
-edgeProb=0.5;
 
 %assoc=0;
 assoc=1;

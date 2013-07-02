@@ -74,8 +74,8 @@ function [x, e] = MultiLabelSubModular(D, W, Vi, Vm)
 %
 
 % check Monge
-assert( IsMonge(Vm), 'MultiLabelSubModular:submodularityV',...
-    'Matrices Vm are not submodular');
+% assert( IsMonge(Vm), 'MultiLabelSubModular:submodularityV',...
+%     'Matrices Vm are not submodular');
 
 % make sure W is non negative
 assert( all( nonzeros(W) > 0 ), 'MultiLabelSubModular:submodularityW',...
@@ -102,8 +102,8 @@ wvec = vertcat(swij + 1i*svij, swij + 1i*svij);
 W = sparse(ivec, jvec, wvec, size(W,1), size(W,2));
 
 % run the optimization
-x = MultiLabelSubModular_mex(D, W, Vm);
-%[x, maxFlow, elMat] = MultiLabelSubModularBasic(D, W, Vm);
+%x = MultiLabelSubModular_mex(D, W, Vm);
+[x, maxFlow, elMat] = MultiLabelSubModularBasic(D, W, Vm);
 %assert(all(xMex == x));
 
 if nargout > 1 % compute energy as well
