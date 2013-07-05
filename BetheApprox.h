@@ -56,6 +56,11 @@ struct cscMatrix {
   size_t *ir, *jc;
 };
 
+inline int degree(const cscMatrix &W, int j) {
+  return W.jc[j+1] - W.jc[j];
+}
+
+
 // Compressed sparse column layout. (MATLAB's format)
 //
 // jc[j] is the linear index of the first nonzero element in column j and

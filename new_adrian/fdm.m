@@ -1,7 +1,10 @@
-function [ gams,N ] = fdm(theta, W, A, B, epsilon, method, L, U)
-%[ gams,N ] = fdm(theta, W, A, B, epsilon, method, L, U)
-% First derivative mesh revised by AW. 
-% N=total no. mesh points across all dims
+function [ gams,sumN,prodN,thisN ] = fdm(theta, W, A, B, epsilon, method, L, U)
+%[ gams,sumN,prodN,thisN ] = fdm(theta, W, A, B, epsilon, method, L, U)
+% First derivative mesh revised by AW.
+% gams has all the mesh points
+% sumN=total no. mesh points across all dims, prodN=\prod_i N_i
+% thisN has N_i for each dimension
+% methods: simple, minsum, adaptivesimple, adaptiveminsum (see SODA paper)
 
 %   calculates the first-derivative mesh
 %   to accuracy epsilon. gams is a N-vector of step sizes, one in each
@@ -90,46 +93,50 @@ S      = 1 - B - A; % gap sizes
 % Now calculate the gamma mesh.
 if strcmp(method, 'simple')
     gams   = 2 * epsilon / n * (1./D);  % epsilon and n are scalars, D is a vector
-elseif strcmp(method, 'lagrangian')
+elseif strcmp(method, 'minsum')
     sqrtSoverD = sqrt(S ./ D); sumsqrtSD=sum(sqrt(S .* D));
     gams   = 2 * epsilon * sqrtSoverD / sumsqrtSD;
-elseif strcmp(method, 'adaptive')
+elseif strcmp(method(1:8), 'adaptive')
     % This uses the whole bag of tricks. So adaptive, integrate,
     % directional. Though for the moment we keep the deltaF_i = epsilon/n
     % which can probably be improved similarly to lagrangian, need to think
     % For now I always go left->right placing points as extreme as
     % possible along the way. May need to intro tolerance for numerical
     % error *
-    k = 1/n; % we'll make the max delta F_i = k epsilon for now. Later maybe investigate k(i)
-    keps = k*epsilon;
-    gams = cell(n,1); N=n; % N is total no. of mesh points in all dims
+    
+    % lower prod. lowest?
+    if strcmp(method(9:end), 'simple')
+        k = 1/n * ones(n,1); keps = k*epsilon; % we'll make the max delta F_i = k epsilon 
+    elseif strcmp(method(9:end), 'minsum')
+        sqrtSD=sqrt(S .* D); sumsqrtSD=sum(sqrtSD); keps=epsilon/sumsqrtSD *sqrtSD; 
+    else
+        fprintf('adaptive but what type?\n'); beep; return
+    end
+    gams = cell(n,1); sumN=n; % N is total no. of mesh points in all dims
+    thisN=ones(n,1);
     for i=1:n
-%        fprintf('Starting computation of mesh points gams{i} for i=%d\n',i);
+        fprintf('Starting computation of mesh points gams{i} for i=%d\n',i);
         Uconst=ub(i); Lconst=lb(i); prevr=A(i);
         gams{i}=[prevr]; % this is just to make it a vec, take it off at the end (unless A=1-B in which case leave it as is]
         if A(i)<1-B(i)
             while prevr<1-B(i)
-                [m,nextr]=adapt(prevr,Uconst,Lconst,keps,A(i),B(i));
+                [m,nextr]=adapt(prevr,Uconst,Lconst,keps(i),A(i),B(i));
                 gams{i}=[gams{i} m];
                 prevr=nextr;
-                N=N+1;
+                sumN=sumN+1; thisN(i)=thisN(i)+1;
             end
             gams{i}=gams{i}(2:end); % strips off the initial point which was needed to make sure it would work as a vec
-            N=N-1;
+            sumN=sumN-1; thisN(i)=thisN(i)-1;
         end
     end  
 end
-if strcmp(method, 'simple') || strcmp(method, 'lagrangian') % calc N
-%     thisN=zeros(n,1); % no. mesh points in each dimension
-%     for i=1:n
-%         frac=(1-B(i)-A(i)-gams(i))/gams(i);
-%         thisN(i)=round(frac+0.51)+1;
-%     end
+
+if strcmp(method, 'simple') || strcmp(method, 'minsum') % calc N
     frac=(1-B-A-gams)./gams;
     thisN=round(frac+0.51)+1; % no. mesh points in each dimension
-    N=sum(thisN);
+    sumN=sum(thisN);
 end
-    
+prodN=prod(thisN);   
 
 end
 

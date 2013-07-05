@@ -6,15 +6,9 @@ function [ D, newW, Vi, Vm ] = boundMRFNew(theta, W, gams)
 %
 %   theta - N-vector of unary weights
 %   W     - N x N symmetric sparse matrix of pairwise edge weights (Eq 1)
-%   A     - N-vector of lower bounds
-%   B     - N-vector of complementary upper bounds
-%   alpha - output from BBP
-%   epsilon - tolerance from the true optimum value
+%   gams  - cell array of vectors of discretized points
 %
 %   D, W, Vi, Vm - Arguments to pass to MultiLabelSubModular
-%   gams         - N-cell array of probabilities corresponding the label levels
-%
-%   Equations and numbers taken from the 31 Dec 2012 draft.
 
     % From the symmetric graph, extract an edge list where iVec(n) < jVec(n)
     nNodes = length(theta);
