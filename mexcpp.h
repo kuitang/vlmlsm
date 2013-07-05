@@ -216,11 +216,11 @@ namespace mexcpp {
     template<class S>
     void setS(size_t r, size_t c, const S &x) { setS(sub2ind(r, c), x); }
 
-    mxArray *ptr(size_t ind) { return mxGetCell(pm, ind); }
-    mxArray *ptr(size_t r, size_t c) { return ptr(sub2ind(r, c)); }
+    mxArray *ptr(size_t ind) const { return mxGetCell(pm, ind); }
+    mxArray *ptr(size_t r, size_t c) const { return ptr(sub2ind(r, c)); }
 
-    CellT operator[](size_t ind) { return CellT(ptr(ind)); }
-    CellT operator()(size_t r, size_t c) { return CellT(ptr(sub2ind(r, c))); }
+    CellT operator[](size_t ind) const { return CellT(ptr(ind)); }
+    CellT operator()(size_t r, size_t c) const { return CellT(ptr(sub2ind(r, c))); }
   };
 
   // For use in classMat and classNDArray. Just stores a pointer to

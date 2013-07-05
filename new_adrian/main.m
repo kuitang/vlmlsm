@@ -13,14 +13,14 @@ seed = -1;
 epsilon = 0.01;
 
 Tmax=0;  % Local potentials
-Wmax=4;
+Wmax=8;
 
 %assoc=0;
 assoc=1;
 
 maxiter=100;
 
-methods = {'simple', 'lagrangian', 'adaptive' };
+methods = {'simple', 'minsum', 'adaptivesimple', 'adaptiveminsum'};
 
 nTrials = 10;
 
@@ -35,14 +35,17 @@ maxPoints = 1e4;
 for t = 1:nTrials
     [ gamma1,gamma2,gamma2_2,N1,N2,N2_2,seed,Am,Bm,theta,W,K,zeta, J, thisN1,thisN2,thisN2_2,L,U ] = gamma12( N,epsilon,Tmax,Wmax,edgeProb,assoc,seed,maxiter );
     
-    [logZ1True, ~, ~, ~, ~] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');        
+    W = sparse(W);
+    
+%    [logZ1True, ~, ~, ~, ~] = solveDAI(theta, W, 'JTREE', '[updates=HUGIN,verbose=0]');        
     logZ1True = 0;
 
     %% One run
     if N1 < maxPoints
         gams1 = fillGams(gamma1, Am, Bm, true);
         
-        [logZ1, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams1);
+        %[logZ1, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams1);
+        [logZ1, oneMarginals, twoMarginals, misc] = BetheGams_mex(theta, W, gams1);        
         fprintf(1, 'LOGZ1 GAP: %g\n', abs(logZ1 - logZ1True));
         
         N1Hist(t) = N1;
@@ -54,7 +57,7 @@ for t = 1:nTrials
     if N2 < maxPoints
         gams2 = fillGams(gamma2, Am, Bm, true);
         
-        [logZ2, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams2);
+        [logZ2, oneMarginals, twoMarginals, misc] = BetheGams_mex(theta, W, gams2);
         fprintf(1, 'LOGZ2 GAP: %g\n', abs(logZ2 - logZ1True));
         
         N2Hist(t) = N2;
@@ -66,7 +69,7 @@ for t = 1:nTrials
     if N2_2 < maxPoints
         gams2_2 = fillGams(gamma2_2, Am, Bm, true);    
         
-        [logZ2_2, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams2_2);        
+        [logZ2_2, oneMarginals, twoMarginals, misc] = BetheGams_mex(theta, W, gams2_2);        
         fprintf(1, 'LOGZ2_2 GAP: %g\n', abs(logZ2_2 - logZ1True));
         
         N2_2Hist(t) = N2_2;
@@ -91,7 +94,7 @@ for t = 1:nTrials
                 im
                 gams(:,im) = fillGams(gm, Am, Bm, false);
 
-                [logZ2_fd(im), oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams(:,im));
+                [logZ2_fd(im), oneMarginals, twoMarginals, misc] = BetheGams_mex(theta, W, gams(:,im));
                 fprintf(1, 'LOGZ2_fd GAP: %g\n', abs(logZ2_fd(im) - logZ1True));
             end
         end

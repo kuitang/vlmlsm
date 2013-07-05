@@ -243,11 +243,6 @@ bool mooijBound(size_t nNodes,
 
 
 
-inline int degree(const cscMatrix &W, int j) {
-  return W.jc[j+1] - W.jc[j];
-}
-
-
 // For node n, find points in the interval [A[n], 1 - B[n]] such that the
 // distance between two consecutive points is at most intervalSz.
 //

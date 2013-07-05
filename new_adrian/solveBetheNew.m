@@ -28,9 +28,13 @@ function [logZ, oneMarginals, twoMarginals, misc] = solveBetheNew(theta, W, gams
     assert(all(W(:) >= 0), 'W contains negative entries. Not submodular!');    
            
     [D, newW, Vi, Vm] = boundMRFNew(theta, W, gams);
-    [x, e]  = MultiLabelSubModular(D, newW, Vi, Vm);
+    [x, e]  = MultiLabelSubModular(D, newW, Vi, Vm);       
     
     misc = var2struct(D, newW, Vi, Vm, x, e);
+    
+    % *** MRF2UAI ***
+    mrf2uai(misc, 'solveBetheNew.UAI.LG');
+    % *** END MRF2UAI ***
     
     logZ = -e(1);
 
