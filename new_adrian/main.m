@@ -10,10 +10,11 @@ edgeProb=1;
 seed = -1;
 
 %epsilon = 0.05;
-epsilon = 0.01;
+%epsilon = 0.01;
+epsilon = 0.1;
 
 Tmax=0;  % Local potentials
-Wmax=4;
+Wmax=5;
 
 %assoc=0;
 assoc=1;
