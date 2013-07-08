@@ -70,8 +70,8 @@ void makeBetheGamsMinSum(size_t nNodes,
             double xi = marginalize(aij, qLo, qHi, marginals);
             potential(iqLo, iqHi) = -w*xi - entropy<4>(marginals);
 
-            //mexPrintf("%s:%d -- Potential at %lx entry (%d, %d) is %g\n",
-            //          __FILE__, __LINE__, &potential, iqLo, iqHi, potential(iqLo, iqHi));
+//            mexPrintf("%s:%d -- Potential at %lx entry (%d, %d) is %g\n",
+//                      __FILE__, __LINE__, &potential, iqLo, iqHi, potential(iqLo, iqHi));
           }
         }
 
