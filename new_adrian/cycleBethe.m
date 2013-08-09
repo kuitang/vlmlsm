@@ -6,8 +6,10 @@ function [mu, lam] = cycleBethe(theta, W, varargin)
     p.addRequired('W');
     p.addParamValue('epsilon', 0.1); % It's gonna be slow...        
     p.addParamValue('gapTol', 1e-5);
-    p.addParamValue('initStep', 1e-2);
+    p.addParamValue('initStep', 1);
     p.parse(theta, W, varargin{:});
+    
+    fudge = 1e-6;
     
     o = p.Results;
     
@@ -43,7 +45,7 @@ function [mu, lam] = cycleBethe(theta, W, varargin)
     dual = 0;
     stepSz = o.initStep;
     oldDual = 0;
-    viol = Inf;
+    gap = 10000;
     Econst = 0;
     
     % DATA STRUCTURE TO STORE BOTH CHORDLESS CYCLES AND THEIR ODD EDGE
@@ -59,7 +61,8 @@ function [mu, lam] = cycleBethe(theta, W, varargin)
         W(u,v) = W(u,v) + dW;
     end
 
-    while abs(viol) > o.gapTol                
+    while abs(gap) > o.gapTol                
+%    while true
         % Solve \argmin_{\mu} L(\mu, \lambda).
         %
         % Absorb constraint terms into the primal
@@ -103,6 +106,8 @@ function [mu, lam] = cycleBethe(theta, W, varargin)
 
         % Solve it.
         [mu, xi, primal] = solveBetheExact(theta, W, 'epsilon', o.epsilon);
+        mu
+        %xi
         
         % We want a symmetric xi
         xi = triu(xi, 1);
@@ -152,19 +157,26 @@ function [mu, lam] = cycleBethe(theta, W, varargin)
         
         % Calculate statistics for this iteration, before stepping.
         oldDual = dual;
-        viol = sum(lam .* subGrad);
-        dual = primal + viol;
+        gap = sum(lam .* subGrad);
+        dual = primal + gap;
         
-        assert(viol >= 0, 'the dual must lower-bound the primal!');
+        % This may not always be the case, since we are not guaranteed to
+        % be either dual or primal feasible. (L <= P only holds at
+        % feasibility)
+        assert(gap <= fudge, 'the dual must lower-bound the primal!');
         
         % Step size schedule in in [Rush12]; see [Komodakis11] for other ideas.
-        if oldDual > dual
+        if dual < oldDual
             % We overstepped, so scale down our stepsize.
+            fprintf(1, 'Dual decreased; decreasing step size\n');
             dualDecreaseIters = dualDecreaseIters + 1;
             stepSz = o.initStep / (1 + dualDecreaseIters);
         end
         
-        fprintf(1, 'Iter %d, primal = %g, dual violations (gap) = %g\n', iter, primal, viol);
+        %stepSz = o.initStep / (1 + iter)
+        
+        
+        fprintf(1, 'Iter %d, primal = %g, dual violations (gap) = %g\n', iter, primal, gap);
                
         % lam is set for next iteration.
         
@@ -172,6 +184,8 @@ function [mu, lam] = cycleBethe(theta, W, varargin)
         % [Komodakis11].
         lam = max(0, lam + stepSz * subGrad);                
         iter = iter + 1;
+        %subGrad
+        %lam
         
         % Save the state somewhere???
     end

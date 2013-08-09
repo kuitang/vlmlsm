@@ -31,7 +31,9 @@ function [ mu, xi, energy ] = solveBetheExact(theta, W, varargin)
         
         % Get the gams from somewhere...
         [A, B] = bpbound(N, theta, W, maxIter);        
-        [gams, nPts] = fdm(theta, W, A, B, o.epsilon, o.method);                
+        [gams, nPts] = fdm(theta, W, A, B, o.epsilon, o.method);
+        
+        % Check the bounds        
         
         [D, ~, Vi, Vm] = boundMRFNew(theta, W, gams);
         L = cellfun(@length, D);        
@@ -143,7 +145,7 @@ function [ mu, xi, energy ] = solveBetheExact(theta, W, varargin)
         vtype = repmat('B', 1, length(obj));
         
         model = var2struct(A, obj, rhs, vtype, sense);
-        params = struct();
+        params = struct('OutputFlag', 0);
         
         result = gurobi(model, params);
         assert(strcmp(result.status, 'OPTIMAL'), 'ILP not solved to optimality!');
@@ -161,18 +163,21 @@ function [ mu, xi, energy ] = solveBetheExact(theta, W, varargin)
         mu(N) = 0;
         xi = zeros(N,N);
         
+        
         % XI IS NOT VM!! There is a formula. (In fact, closed form; it's
         % not even a silly energy calculation)
         iEdge = 1;
+        alpha = exp(W) - 1;
         for u = 1:N
             assert(length(gams{u}) == L(u) && length(D{u}) == L(u), 'marginal, energy, and label mismatch');
             mu(u) = gams{u}(label(u));
-            
+        end
+        
+        for u = 1:N
             for v = (u+1):N
-                xv = Vm{Vi(u,v)}(label(u), label(v));
-                xi(u,v) = xv;                
+                [~, xi(u,v)] = marginalize(alpha(u,v), mu(u), mu(v));
             end
-        end                        
+        end
     else
         error('solveBetheExact:algo', 'Algo %s not recognized', o.algo);
     end

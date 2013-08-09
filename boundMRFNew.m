@@ -38,8 +38,19 @@ function [ D, newW, Vi, Vm ] = boundMRFNew(theta, W, gams)
         t = theta(n);
         for iq = 1:length(gams{n})
             q = gams{n}(iq);
-            S = -q * log(q) - (1 - q) * log(1 - q);
-            D{n}(iq) = -t * q + (deg(n) - 1) * S;
+            
+            m = [q 1 - q];
+            
+            ent = zeros(1,2);
+                        
+            totalNeg = sum(m(m < 0));
+            assert(abs(totalNeg) < 1e-5, 'Too much negativity!');            
+            
+            ent(m <= 0) = 0;
+            nz = m > 0;
+            ent(nz) = -m(nz) .* log(m(nz));
+                        
+            D{n}(iq) = -t * q + (deg(n) - 1) * sum(ent);
         end        
     end
     
@@ -63,8 +74,12 @@ function [ D, newW, Vi, Vm ] = boundMRFNew(theta, W, gams)
 %         qjr = gams{j};
 %         Vm{ne} = zeros(length(qir), length(qjr));
         
-        Vm{ne} = makePotential_mex(w, gams{i}, gams{j});        
+%        Vm{ne}  = makePotential_mex(w, gams{i}, gams{j});        
+        Vm{ne} = makePotential(w, gams{i}, gams{j});
+%        assertElementsAlmostEqual(Vm{ne}, otherVm);
         
+        assert(all(~vec(isnan(Vm{ne}))));
+        assert(sum(vec(abs(imag(Vm{ne})))) == 0, 'Got some imagination!');
         
 %         for iq = 1:length(qir)
 %             for jq = 1:length(qjr)

@@ -115,7 +115,7 @@ elseif strcmp(method(1:8), 'adaptive')
     gams = cell(n,1); sumN=n; % N is total no. of mesh points in all dims
     thisN=ones(n,1);
     for i=1:n
-        fprintf('Starting computation of mesh points gams{i} for i=%d\n',i);
+        %fprintf('Starting computation of mesh points gams{i} for i=%d\n',i);
         Uconst=ub(i); Lconst=lb(i); prevr=A(i);
         gams{i}=[prevr]; % this is just to make it a vec, take it off at the end (unless A=1-B in which case leave it as is]
         if A(i)<1-B(i)

@@ -10,26 +10,23 @@ function [ m,nextr ] = adapt( prevr,Uconst,Lconst,keps,A,B,TOL )
 % No seems not much harder to try integral so we'll do that
 if nargin<7; TOL=0.99; end % We'll find m,nextr s.t. integrals are in range [LOTWOL,1] * keps
 
+fudge = 1e-6;
+
 C=Uconst-Lconst;
 if C<0
-    fprintf('Error: Upper bound constant < Lower bound constant\n');
-    return
+    error('Error: Upper bound constant < Lower bound constant\n');    
 end
 if A<0 || (1-B)>1 || A>(1-B)
-    fprintf('Error: invalid A, 1-B bounds\n');
-    return
+    error('Error: invalid A, 1-B bounds\n');    
 end
 if prevr<A || prevr>1-B
-    fprintf('Error: Previous r not in [A,1-B]\n');
-    return
+    error('Error: Previous r not in [A,1-B]\n');    
 end
-if Uconst+log(prevr/(1-prevr))<0
-    fprintf('Error: Upper bound<0 at prevr\n');
-    return
+if Uconst+log(prevr/(1-prevr)) < 0 - fudge
+    error('Error: Upper bound<0 at prevr\n');    
 end
-if Lconst+log((1-B)/B)>0
-    fprintf('Error: Lower bound>0 at right edge 1-B\n');
-    return
+if Lconst+log((1-B)/B) > 0 + fudge
+    error('Error: Lower bound>0 at right edge 1-B\n');    
 end
 
 p=prevr;
@@ -52,13 +49,15 @@ if intp2m(Uconst,1-B,prevr)>keps % if <= then already done
             if m<besthi; besthi=m; end
             %m=p+(mlast-p)/2;
             m=p+(besthi-p)/(curfrac+0.01); % 0.01 to prevent numerical problems
-            if m<=bestlo || m>=besthi; m=(bestlo+besthi)/2; disp('Interpolated m'); end
+%            if m<=bestlo || m>=besthi; m=(bestlo+besthi)/2; disp('Interpolated m'); end
+            if m<=bestlo || m>=besthi; m=(bestlo+besthi)/2; end            
         else
             if m>bestlo; bestlo=m; end
             derivAtM=Uconst+log(m/(1-m));
             deltam=(keps-curint)/derivAtM *0.99;  % 0.99 is to prevent numerical overshoot
             m=m+deltam;
-            if m<=bestlo || m>=besthi; m=(bestlo+besthi)/2; disp('Interpolated m'); end
+%            if m<=bestlo || m>=besthi; m=(bestlo+besthi)/2; disp('Interpolated m'); end
+            if m<=bestlo || m>=besthi; m=(bestlo+besthi)/2; end            
         end
         curint=intp2m(Uconst,m,p);
         curfrac=curint/keps;
@@ -76,13 +75,15 @@ if intp2m(Uconst,1-B,prevr)>keps % if <= then already done
             if curfrac>1
                 if r<besthi; besthi=r; end
                 rlast=r; r=m+(rlast-m)/(curfrac+.01);
-                if r<=bestlo || r>=besthi; r=(bestlo+besthi)/2; disp('Interpolated r'); end
+%                if r<=bestlo || r>=besthi; r=(bestlo+besthi)/2; disp('Interpolated r'); end
+                if r<=bestlo || r>=besthi; r=(bestlo+besthi)/2; end               
             else
                 if r>bestlo; bestlo=r; end
                 derivAtR=-(Lconst+log(r/(1-r))); % positive
                 deltar=(keps-curint)/derivAtR *0.99;
                 r=r+deltar;
-                if r<=bestlo || r>=besthi; r=(bestlo+besthi)/2; disp('Interpolated r'); end
+%                if r<=bestlo || r>=besthi; r=(bestlo+besthi)/2; disp('Interpolated r'); end
+                if r<=bestlo || r>=besthi; r=(bestlo+besthi)/2; end               
             end
             curint=intp2m(Lconst,m,r); curfrac=curint/keps;
             %fprintf('r iteration #%d, r=%8.6f, curfrac=%8.6f\n',iter,r,curfrac);

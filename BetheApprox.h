@@ -28,7 +28,11 @@ inline double marginalize(double alpha, double q_i, double q_j, double *out) {
 }
 
 inline double binaryEntropy(double p) {
-  return -p * log(p) - (1 - p) * log(1 - p);
+  if (p == 0) {
+    return 0;
+  } else {
+    return -p * log(p) - (1 - p) * log(1 - p);
+  }
 }
 
 template<int N>
@@ -36,7 +40,9 @@ inline double entropy(const double *p) {
   double ret = 0;
   // expect this to unroll
   for (int i = 0; i < N; i++) {
-    ret = ret - p[i]*log(p[i]);
+    if (p[i] > 0) {
+      ret = ret - p[i]*log(p[i]);
+    }
   }
   return ret;
 }
